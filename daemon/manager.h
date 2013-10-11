@@ -73,14 +73,17 @@ msgport_manager_get_service (
     MsgPortManager     *manager,
     MsgPortDbusManager *owner,
     const gchar        *remote_port_name,
-    gboolean            is_trusted,
-    GError            **error_out);
+    gboolean            is_trusted);
 
 MsgPortDbusService *
-msgport_manager_get_service_by_path (
+msgport_manager_get_service_by_id (
     MsgPortManager *manager,
-    const gchar    *object_path,
-    GError        **error_out);
+    guint           service_id);
+
+gboolean
+msgport_manager_unregister_services (
+    MsgPortManager     *manager,
+    MsgPortDbusManager *owned_by);
 
 G_END_DECLS
 

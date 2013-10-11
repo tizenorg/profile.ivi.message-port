@@ -1,25 +1,7 @@
 bin_PROGRAMS = messageportd
 NULL = 
 
-dbus-manager-glue.c dbus-maanager-glue.h : org.tizen.messageport.Manager.xml
-	gdbus-codegen                                \
-        --interface-prefix org.tizen.messageport \
-        --c-namespace      MsgPort_Dbus_Glue     \
-        --generate-c-code  dbus-manager-glue     \
-        $<
-
-dbus-service-glue.c dbus-service-glue.h : org.tizen.messageport.Service.xml
-	gdbus-codegen                                \
-        --interface-prefix org.tizen.messageport \
-        --c-namespace      MsgPort_Dbus_Glue     \
-        --generate-c-code  dbus-service-glue     \
-        $<
-
 messageportd_SOURCES = \
-    dbus-manager-glue.h \
-    dbus-manager-glue.c \
-    dubs-service-glue.h \
-    dbus-service-glue.c \
     dbus-service.h \
     dbus-service.c \
     dbus-manager.h \
@@ -35,9 +17,12 @@ messageportd_SOURCES = \
 
 messageportd_CPPFLAGS = \
     -I$(top_builddir) \
-    $(MESSAGEPORT_CFLAGS)
+    $(GLIB_CLFAGS) $(GIO_CFLAGS) \
+    $(NULL)
 
 messageportd_LDADD = \
-    $(MESSAGEPORT_LIBS)
+    ../common/libmessageport-dbus-glue.la \
+    $(GLIB_LIBS) $(GIO_LIBS) \
+    $(NULL)
 
 CLEANFILES = 

@@ -10,10 +10,10 @@
       <arg name="remote_app_id" type="s" direction="in"/>
       <arg name="remote_port" type="s" direction="in"/>
       <arg name="is_trusted" type="b" direction="in"/>
-      <arg name="remote_port_path" type="o" direction="out"/>
+      <arg name="serivce_id" type="u" direction="out"/>
     </method>
     <method name="sendMessage">
-      <arg name="remote_port_path" type="o" direction="in"/>
+      <arg name="service_id" type="u" direction="in"/>
       <arg name="data" type="a{sv}" direction="in"/>
     </method>
   </interface>

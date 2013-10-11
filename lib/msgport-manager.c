@@ -1,73 +1,164 @@
 #include "msgport-manager.h"
-#include "message-port.h"
+#include "msgport-service.h"
+#include "message-port.h" /* MESSAGEPORT_ERROR */
+#include "common/dbus-manager-glue.h"
 #include "common/log.h"
-#include "dbus-manager-glue.h"
+#include "config.h" /* MESSAGEPORT_BUS_ADDRESS */
 #include <gio/gio.h>
 
 struct _MsgPortManager
 {
-    MsgPortGlueManagerPorxy *proxy;
+    GObject parent;
+
+    MsgPortDbusGlueManager *proxy;
     GHashTable *services; /* {gchar*:MsgPortService*} */
-    GList *local_service_list;
-    int n_local_services;
+    GHashTable *local_services; /* {gint: gchar *} */ 
+    GHashTable *remote_services; /* {gint: gchar *} */
 };
 
-static MsgPortManager __manager;
+G_DEFINE_TYPE (MsgPortManager, msgport_manager, G_TYPE_OBJECT)
 
-MsgPortManager * msgport_manager_new ()
+static void
+_unregister_service_cb (int service_id, const gchar *object_path, MsgPortManager *manager)
+{
+    MsgPortService *service = g_hash_table_lookup (manager->services, object_path);
+
+    if (service) msgport_service_unregister (service);
+}
+
+static void
+_finalize (GObject *self)
+{
+    MsgPortManager *manager = MSGPORT_MANAGER (self);
+
+    if (manager->local_services) {
+        g_hash_table_unref (manager->local_services);
+        manager->local_services = NULL;
+    }
+
+    if (manager->remote_services) {
+        g_hash_table_unref (manager->remote_services);
+        manager->remote_services = NULL;
+    }
+
+    G_OBJECT_CLASS (msgport_manager_parent_class)->finalize (self);
+}
+
+static void
+_dispose (GObject *self)
+{
+    MsgPortManager *manager = MSGPORT_MANAGER (self);
+
+    g_hash_table_foreach (manager->local_services, (GHFunc)_unregister_service_cb, manager);
+
+    if (manager->services) {
+        g_hash_table_unref (manager->services);
+        manager->services = NULL;
+    }
+
+    g_clear_object (&manager->proxy);
+
+    G_OBJECT_CLASS (msgport_manager_parent_class)->dispose (self);
+}
+
+static void
+msgport_manager_class_init (MsgPortManagerClass *klass)
+{
+    GObjectClass *g_klass = G_OBJECT_CLASS (klass);
+
+    g_klass->finalize = _finalize;
+    g_klass->dispose = _dispose;
+}
+
+static void
+msgport_manager_init (MsgPortManager *manager)
 {
     GError          *error = NULL;
     GDBusConnection *connection = NULL;
-    MsgPortManager  *manager = g_slice_new0(MsgPortManager);
-    gchar           *bus_address = g_strdup_printf (MESSAGEPORT_BUS_ADDRESS, g_get_user_runtime_dir());
+    gchar           *bus_address = g_strdup_printf (MESSAGEPORT_BUS_ADDRESS);
 
-    if (!manager) {
-        return NULL;
-    }
+    manager->services = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, g_object_unref);
+    manager->local_services = g_hash_table_new_full (g_direct_hash, g_direct_equal, NULL, NULL);
+    manager->remote_services = g_hash_table_new_full (g_direct_hash, g_direct_equal, NULL, NULL);
 
     connection = g_dbus_connection_new_for_address_sync (bus_address,
-                                G_DBUS_CONNECTION_FLAGS_AUTHENTICATION_CLIENT,
-                                NULL, NULL, &error);
-
+            G_DBUS_CONNECTION_FLAGS_AUTHENTICATION_CLIENT, NULL, NULL, &error);
     if (error) {
-        ERR ("Unable to get bus connection for address %s: %s", bus_address, error->message);
+        WARN ("Fail to connect messageport server at address %s: %s", bus_address, error->message);
         g_error_free (error);
-        goto fail;
     }
-
-    manager->services = g_hash_table_new_full (g_str_hash, g_str_equal,
-                               g_free, (GDestroyNotify)g_object_unref);
-    manager->local_servcie_list = NULL;
-    manager->n_local_services = 0;
-    manager->proxy = msgport_dbus_glue_manager_proxy_new_sync (
+    else {
+        manager->proxy = msgport_dbus_glue_manager_proxy_new_sync (
             connection, G_DBUS_PROXY_FLAGS_DO_NOT_LOAD_PROPERTIES, NULL, "/", NULL, &error);
-
-    if (!manager->proxy) {
-        ERR ("Unable to get manager proxy : %s", error->message);
-        g_error_free (error);
-        goto fail;
+        if (error) {
+            WARN ("Fail to get manager proxy : %s", error->message);
+            g_error_free (error);
+        }
     }
-
-    return manager;
-
-fail:
-    if (manager) msgport_manager_unref (manager);
-    return NULL;
 }
 
-MsgPortManager * msgport_get_manager () {
-    if (!__manager) 
-        __manager = magport_manager_new ();
+MsgPortManager * msgport_manager_new ()
+{
+    return g_object_new (MSGPORT_TYPE_MANAGER, NULL);
+}
+
+static MsgPortManager *__manager;
+
+MsgPortManager * msgport_get_manager () 
+{
+    if (!__manager) {
+        __manager = msgport_manager_new ();
+    }
 
     return __manager;
 }
 
-int msgport_manager_register_service (MsgPortManager *manger, const gchar *port_name, gboolean is_trusted)
+static int
+_create_and_cache_service (MsgPortManager *manager, gchar *object_path, messageport_message_cb cb)
+{
+    int id;
+    MsgPortService *service = msgport_service_new (
+            g_dbus_proxy_get_connection (G_DBUS_PROXY(manager->proxy)),
+            object_path, cb);
+    if (!service) {
+        return MESSAGEPORT_ERROR_IO_ERROR;
+    }
+
+    id = msgport_service_id (service);
+
+    g_hash_table_insert (manager->services, object_path, service);
+    g_hash_table_insert (manager->local_services, GINT_TO_POINTER (id), object_path);
+
+    return id;
+}
+
+static MsgPortService *
+_get_local_port (MsgPortManager *manager, int service_id)
+{
+    const gchar *object_path = NULL;
+    MsgPortService *service = NULL;
+
+    object_path = g_hash_table_lookup (manager->local_services, GINT_TO_POINTER(service_id));
+    if (!object_path) return NULL;
+
+    service = MSGPORT_SERVICE (g_hash_table_lookup (manager->services, object_path));
+    if (!service) {
+        g_hash_table_remove (manager->local_services, GINT_TO_POINTER (service_id));
+        return NULL;
+    }
+
+    return service;
+}
+
+messageport_error_e
+msgport_manager_register_service (MsgPortManager *manager, const gchar *port_name, gboolean is_trusted, messageport_message_cb message_cb, int *service_id)
 {
     GError *error = NULL;
-    g_return_val_if_fail (manager && MSGPORT_IS_MANAGER (manager), MESSAGEPORT_ERROR_IO_ERROR);
+    gchar *object_path = NULL;
 
-    if (!port_name) return MESSAGEPORT_ERROR_INVALID_PARAMETER;
+    g_return_val_if_fail (manager && MSGPORT_IS_MANAGER (manager), MESSAGEPORT_ERROR_IO_ERROR);
+    g_return_val_if_fail (manager->proxy, MESSAGEPORT_ERROR_IO_ERROR);
+    g_return_val_if_fail (service_id && port_name && message_cb, MESSAGEPORT_ERROR_INVALID_PARAMETER);
 
     msgport_dbus_glue_manager_call_register_service_sync (manager->proxy,
             port_name, is_trusted, &object_path, NULL, &error);
@@ -78,41 +169,105 @@ int msgport_manager_register_service (MsgPortManager *manger, const gchar *port_
         return MESSAGEPORT_ERROR_IO_ERROR;
     }
 
-    MsgPortService *service = msgport_service_new (
-            g_dbus_proxy_get_connection (G_DBUS_PROXY(manager->proxy)),
-            object_path, &error);
-    if (!service) {
-        WARN ("unable to get service proxy for path %s: %s", object_path, error->message);
-        g_error_free (error);
-        g_free (object_path);
-        return MESSAGEPORT_ERROR_IO_ERROR;
-    }
+    *service_id = _create_and_cache_service (manager, object_path, message_cb);
 
-    g_hash_table_insert (manager->services, object_path, service);
-    manager->local_service_list = g_list_append (manager->local_service_list, object_path);
-    manager->n_local_services++;
-
-    return manager->n_local_services;
+    return MESSAGEPORT_ERROR_NONE;
 }
 
-MsgPortService *
-msgport_service_new (GDBusConnection *connection, const gchar *path, GError **error)
+messageport_error_e
+msgport_manager_unregister_servcie (MsgPortManager *manager, int service_id)
 {
-    MsgPortService *service = g_object_new (MSGPORT_TYPE_SERVICE, NULL);
+    const gchar *object_path = NULL;
+    MsgPortService *service = NULL;
+    g_return_val_if_fail (manager && MSGPORT_IS_MANAGER (manager), FALSE);
+    g_return_val_if_fail (manager->proxy, MESSAGEPORT_ERROR_IO_ERROR);
 
+    service = _get_local_port (manager, service_id);
     if (!service) {
-        /* FIXME: return no merory error */
-        return NULL
+        return MESSAGEPORT_ERROR_MESSAGEPORT_NOT_FOUND;
     }
 
-    service->proxy = msgport_dbus_glue_service_proxy_new_sync (connection,
-                g_dbus_proxy_get_connection (G_DBUS_PROXY(manager->proxy)),
-                G_DBUS_PROXY_FLAGS_DO_NOT_LOAD_PROPERTIES, NULL, object_path, NULL, error);
-    if (!service->proxy) {
-        g_object_unref (service);
-        return NULL;
+    if (!msgport_service_unregister (service)) 
+        return MESSAGEPORT_ERROR_IO_ERROR;
+
+    object_path = (const gchar *)g_hash_table_lookup (manager->local_services,
+                                                      GINT_TO_POINTER(service_id));
+    g_hash_table_remove (manager->local_services, GINT_TO_POINTER(service_id));
+    g_hash_table_remove (manager->services, object_path);
+
+    return MESSAGEPORT_ERROR_NONE;
+}
+
+messageport_error_e 
+msgport_manager_check_remote_service (MsgPortManager *manager, const gchar *app_id, const gchar *port, gboolean is_trusted, guint *service_id_out)
+{
+    GError *error = NULL;
+    guint remote_service_id = 0;
+
+    if (service_id_out) *service_id_out = 0;
+
+    g_return_val_if_fail (manager && MSGPORT_IS_MANAGER (manager), MESSAGEPORT_ERROR_IO_ERROR);
+    g_return_val_if_fail (manager->proxy, MESSAGEPORT_ERROR_IO_ERROR);
+    g_return_val_if_fail (app_id && port, MESSAGEPORT_ERROR_INVALID_PARAMETER);
+
+    if (!app_id || !port) return MESSAGEPORT_ERROR_INVALID_PARAMETER;
+
+    msgport_dbus_glue_manager_call_check_for_remote_service_sync (manager->proxy,
+            app_id, port, is_trusted, &remote_service_id, NULL, &error);
+
+    if (error) {
+        WARN ("No service found for app_id %s, port name %s: %s", app_id, port, error->message);
+        g_error_free (error);
+        return MESSAGEPORT_ERROR_MESSAGEPORT_NOT_FOUND;
+    }
+    else {
+        DBG ("Got service id %d for %s, %s", remote_service_id, app_id, port);
+
+        if (service_id_out)  *service_id_out = remote_service_id;
     }
 
-    return service;
+    return MESSAGEPORT_ERROR_NONE;
+}
+
+messageport_error_e
+msgport_manager_get_service_name (MsgPortManager *manager, int service_id, gchar **name_out)
+{
+    MsgPortService *service = NULL;
+    g_return_val_if_fail (manager && MSGPORT_IS_MANAGER (manager), MESSAGEPORT_ERROR_IO_ERROR);
+    g_return_val_if_fail (manager->proxy, MESSAGEPORT_ERROR_IO_ERROR);
+    g_return_val_if_fail (name_out && service_id, MESSAGEPORT_ERROR_INVALID_PARAMETER);
+
+    service = _get_local_port (manager, service_id);
+    if (!service) return MESSAGEPORT_ERROR_MESSAGEPORT_NOT_FOUND;
+
+    *name_out = g_strdup (msgport_service_name (service));
+    DBG ("PORT NAME : %s", *name_out);
+
+    return MESSAGEPORT_ERROR_NONE;
+}
+
+messageport_error_e
+msgport_manager_send_message (MsgPortManager *manager, const gchar *remote_app_id, const gchar *remote_port, gboolean is_trusted, GVariant *data)
+{
+    guint service_id = 0;
+    messageport_error_e res = MESSAGEPORT_ERROR_NONE;
+    GError *error = NULL;
+
+    g_return_val_if_fail (manager && MSGPORT_IS_MANAGER (manager), MESSAGEPORT_ERROR_IO_ERROR);
+    g_return_val_if_fail (manager->proxy, MESSAGEPORT_ERROR_IO_ERROR);
+    g_return_val_if_fail (remote_app_id && remote_port, MESSAGEPORT_ERROR_INVALID_PARAMETER);
+
+    res = msgport_manager_check_remote_service (manager, remote_app_id, remote_port, is_trusted, &service_id);
+    if (service_id == 0) return res;
+
+    msgport_dbus_glue_manager_call_send_message_sync (manager->proxy, service_id, data, NULL, &error);
+
+    if (error) {
+        WARN ("Failed to send message to (%s:%s) : %s", remote_app_id, remote_port, error->message);
+        g_error_free (error);
+        res = MESSAGEPORT_ERROR_IO_ERROR;
+    }
+
+    return res;
 }
 

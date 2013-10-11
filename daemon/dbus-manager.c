@@ -22,12 +22,12 @@
  */
 
 #include "dbus-manager.h"
-#include "dbus-manager-glue.h"
-#include "dbus-service-glue.h"
+#include "common/dbus-manager-glue.h"
+#include "common/dbus-service-glue.h"
+#include "common/log.h"
 #include "dbus-service.h"
 #include "dbus-server.h"
 #include "manager.h"
-#include "common/log.h"
 
 G_DEFINE_TYPE (MsgPortDbusManager, msgport_dbus_manager, G_TYPE_OBJECT)
 
@@ -86,6 +86,8 @@ _dbus_manager_handle_register_service (
     MsgPortDbusService *dbus_service = NULL;
     g_return_val_if_fail (dbus_mgr &&  MSGPORT_IS_DBUS_MANAGER (dbus_mgr), FALSE);
 
+    DBG ("register service request from %p for port %s", dbus_mgr, port_name);
+
     dbus_service = msgport_manager_register_service (
             dbus_mgr->priv->manager, dbus_mgr, 
             port_name, is_trusted, &error);
@@ -115,21 +117,24 @@ _dbus_manager_handle_check_for_remote_service (
     MsgPortDbusService *dbus_service = NULL;
     MsgPortDbusManager *remote_dbus_manager = NULL;
 
-    g_return_val_if_fail (dbus_mgr && MSGPORT_IS_MANAGER (dbus_mgr), FALSE);
+    g_return_val_if_fail (dbus_mgr && MSGPORT_IS_DBUS_MANAGER (dbus_mgr), FALSE);
+
+    DBG ("check remote service request from %p for %s %s", dbus_mgr, remote_app_id, remote_port_name);
 
     remote_dbus_manager = msgport_dbus_server_get_dbus_manager_by_app_id (
                 dbus_mgr->priv->server, remote_app_id);
 
     dbus_service = msgport_manager_get_service (dbus_mgr->priv->manager, 
-            remote_dbus_manager, remote_port_name, is_trusted, &error);
+            remote_dbus_manager, remote_port_name, is_trusted);
 
     if (error) {
         g_dbus_method_invocation_take_error (invocation, error);
     }
     else {
+        DBG ("Found service id : %d", msgport_dbus_service_get_id (dbus_service));
         msgport_dbus_glue_manager_complete_check_for_remote_service (
                 dbus_mgr->priv->dbus_skeleton, invocation, 
-                msgport_dbus_service_get_object_path (dbus_service));
+                msgport_dbus_service_get_id (dbus_service));
     }
 
     return TRUE;
@@ -139,7 +144,7 @@ static gboolean
 _dbus_manager_handle_send_message (
     MsgPortDbusManager    *dbus_mgr,
     GDBusMethodInvocation *invocation,
-    const gchar           *remote_service_path,
+    guint                  service_id,
     GVariant              *data,
     gpointer               userdata)
 {
@@ -148,13 +153,18 @@ _dbus_manager_handle_send_message (
 
     g_return_val_if_fail (dbus_mgr && MSGPORT_IS_DBUS_MANAGER (dbus_mgr), FALSE);
 
-    dbus_service = msgport_manager_get_service_by_path (dbus_mgr->priv->manager,
-                            remote_service_path, &error);
+    DBG ("send_message from %p : %d ", dbus_mgr, service_id);
+
+    dbus_service = msgport_manager_get_service_by_id (
+            dbus_mgr->priv->manager, service_id);
 
     if (dbus_service){
-        msgport_dbus_service_send_message (dbus_service, data, NULL);
+        msgport_dbus_service_send_message (dbus_service, data, "", "", FALSE);
+        msgport_dbus_glue_manager_complete_send_message (
+                dbus_mgr->priv->dbus_skeleton, invocation);
     }
-    else if(error) {
+    else {
+        /* FIXME : fill error */
         g_dbus_method_invocation_take_error (invocation, error);
     }
 

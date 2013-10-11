@@ -6,12 +6,14 @@
     </method>
     <method name="unregister"/>
     <method name="sendMessage">
-      <arg name="remote_service_path" type="o" direction="in"/>
+      <arg name="remote_service_id" type="u" direction="in"/>
       <arg name="data" type="a{sv}" direction="in"/>
     </method>
     <signal name="onMessage">
       <arg name="data" type="a{sv}"/>
-      <arg name="remote_service_path" type="o"/>
+      <arg name="remote_app_id" type="s"/>
+      <arg name="remote_port_name" type="s"/>
+      <arg name="remote_is_trusted" type="b"/>
     </signal>
   </interface>
 </node>

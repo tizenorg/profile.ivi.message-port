@@ -33,17 +33,17 @@ G_DEFINE_TYPE (MsgPortManager, msgport_manager, G_TYPE_OBJECT)
 
 struct _MsgPortManagerPrivate {
     /*
-     * Key : const gchar * - object_path of the service
+     * Key :   guint - Id of the service
      * Value : MsgPortDbusService * (transfe full)
      */
-    GHashTable *path_service_map; /* {object_path,MsgPortDbusService} */
+    GHashTable *service_cache; /* {service_id,MsgPortDbusService} */
 
     /*
      * Holds services owned by a client 
      * Key : MsgPortDbusManager *
      * Value : GList<MsgPortDbusService *> (tranfer none)
      */
-    GHashTable *owner_service_map; /* {app_id,GList[MsgPortDbusService]} */
+    GHashTable *owner_service_map; /* {MsgPortDbusManager*,GList[MsgPortDbusService]} */
 };
 
 static void
@@ -62,8 +62,8 @@ _manager_dispose (GObject *self)
     g_hash_table_unref (manager->priv->owner_service_map);
     manager->priv->owner_service_map = NULL;
 
-    g_hash_table_unref (manager->priv->path_service_map);
-    manager->priv->path_service_map = NULL;
+    g_hash_table_unref (manager->priv->service_cache);
+    manager->priv->service_cache = NULL;
 
     G_OBJECT_CLASS (msgport_manager_parent_class)->dispose (self);
 }
@@ -73,8 +73,8 @@ msgport_manager_init (MsgPortManager *self)
 {
     MsgPortManagerPrivate *priv = MSGPORT_MANAGER_GET_PRIV (self);
 
-    priv->path_service_map = g_hash_table_new_full (
-                g_str_hash, g_str_equal, NULL, g_object_unref);
+    priv->service_cache = g_hash_table_new_full (
+                g_direct_hash, g_direct_equal, NULL, g_object_unref);
     priv->owner_service_map = g_hash_table_new_full (
                 g_direct_hash, g_direct_equal, 
                 NULL, (GDestroyNotify) g_list_free);
@@ -116,7 +116,7 @@ msgport_manager_register_service (
     gboolean            is_trusted,
     GError            **error)
 {
-    GList   *service_list  = NULL; /* services list by app_id */
+    GList   *service_list  = NULL; /* services list owned by a client */
     gboolean was_empty = TRUE;
     MsgPortDbusService *dbus_service = NULL;
 
@@ -139,12 +139,16 @@ msgport_manager_register_service (
     was_empty = (service_list == NULL);
 
     dbus_service = msgport_dbus_service_new (owner, port_name, is_trusted);
+    if (!dbus_service) {
+        /* FIXME : return NOMEMERY error */
+        return NULL;
+    }
     /* cache newly created service */
-    g_hash_table_insert (manager->priv->path_service_map, 
-        (gpointer)msgport_dbus_service_get_object_path (dbus_service),
+    g_hash_table_insert (manager->priv->service_cache, 
+        GINT_TO_POINTER (msgport_dbus_service_get_id (dbus_service)),
         (gpointer)dbus_service);
 
-    /* append to list of services */
+   /* append to list of services */
     service_list = g_list_append (service_list, dbus_service);
     if (was_empty) {
         g_hash_table_insert (manager->priv->owner_service_map, owner, service_list);
@@ -158,8 +162,7 @@ msgport_manager_get_service (
     MsgPortManager      *manager,
     MsgPortDbusManager  *owner,
     const gchar         *remote_port_name,
-    gboolean             is_trusted,
-    GError             **error)
+    gboolean             is_trusted)
 {
     GList *service_list = NULL;
     g_return_val_if_fail (manager && MSGPORT_IS_MANAGER (manager), NULL);
@@ -181,19 +184,15 @@ msgport_manager_get_service (
 }
 
 MsgPortDbusService *
-msgport_manager_get_service_by_path (
+msgport_manager_get_service_by_id (
     MsgPortManager *manager,
-    const gchar    *service_object_path,
-    GError        **error)
+    guint           service_id)
 {
     MsgPortDbusService *dbus_service = NULL;
     g_return_val_if_fail (manager && MSGPORT_IS_MANAGER (manager), NULL);
 
-    dbus_service = g_hash_table_lookup (manager->priv->path_service_map, service_object_path);
-
-    if (!dbus_service) {
-        /* FIXME: return ENOTFOUND error */
-    }
+    dbus_service = MSGPORT_DBUS_SERVICE (g_hash_table_lookup (
+            manager->priv->service_cache, GINT_TO_POINTER(service_id)));
 
     return dbus_service;
 }
@@ -203,19 +202,14 @@ _unref_dbus_manager_cb (gpointer data, gpointer user_data)
 {
     MsgPortDbusService *service = MSGPORT_DBUS_SERVICE (data);
     MsgPortManager *manager = MSGPORT_MANAGER (user_data);
-    const gchar *object_path = NULL;
-    
-    g_assert (manager);
-    g_assert (service);
-    object_path = msgport_dbus_service_get_object_path (service);
+    guint id = msgport_dbus_service_get_id (service);
 
-    DBG ("Unregistering service %s:%s(%s)", 
+    DBG ("Unregistering service %s:%s(%d)", 
         msgport_dbus_manager_get_app_id (msgport_dbus_service_get_owner (service)),
-        msgport_dbus_service_get_port_name (service),
-        object_path);
-    /* remove the service from object_path:service map,
+        msgport_dbus_service_get_port_name (service), id);
+    /* remove the service from id:service map,
      * as its being unregisted */
-    g_hash_table_remove (manager->priv->path_service_map, object_path);
+    g_hash_table_remove (manager->priv->service_cache, GINT_TO_POINTER(id));
 }
 
 /*
@@ -245,19 +239,19 @@ DBG("}");
 }
 
 /*
- * unregister a signle service for given object path
+ * unregister a signle service for given service id
  */
 gboolean
 msgport_manager_unregister_service (
     MsgPortManager *manager,
-    const gchar *service_object_path)
+    gint            service_id)
 {
     MsgPortDbusService *service = NULL;
     MsgPortDbusManager *owner = NULL;
     GList *service_list = NULL, *new_service_list = NULL;
     g_return_val_if_fail (manager && MSGPORT_IS_MANAGER (manager), FALSE);
-DBG ("{");
-    service = g_hash_table_lookup (manager->priv->path_service_map, service_object_path);
+
+    service = g_hash_table_lookup (manager->priv->service_cache, GINT_TO_POINTER (service_id));
 
     if (!service) return FALSE;
 
@@ -273,9 +267,9 @@ DBG ("{");
         g_hash_table_insert (manager->priv->owner_service_map, owner, new_service_list);
     }
 
-    /* remove from the object_path:servcie table */
-    g_hash_table_remove (manager->priv->path_service_map, service_object_path);
-DBG("}");
+    /* remove from the service_id:servcie table */
+    g_hash_table_remove (manager->priv->service_cache, GINT_TO_POINTER(service_id));
+
     return TRUE;
 }
 

@@ -38,9 +38,9 @@ G_DEFINE_TYPE (MsgPortDbusServer, msgport_dbus_server, G_TYPE_OBJECT)
 #define MSGPORT_DBUS_SERVER_GET_PRIV(obj) \
     G_TYPE_INSTANCE_GET_PRIVATE ((obj), MSGPORT_TYPE_DBUS_SERVER, MsgPortDbusServerPrivate)
 
-#ifndef MSGPORT_DBUS_ADDRESS
-#   define MSGPORT_DBUS_ADDRESS "unix:path=%s/.message_port"
-#endif /* MSGPORT_DBUS_ADDRESS */
+#ifndef MESSAGEPORT_BUS_ADDRESS
+#   define MESSAGEPORT_BUS_ADDRESS "unix:path=%s/.message-port"
+#endif /* MESSAGEPORT_BUS_ADDRESS */
 
 enum
 {
@@ -289,7 +289,7 @@ MsgPortDbusServer * msgport_dbus_server_new_with_address (const gchar *address)
 MsgPortDbusServer *
 msgport_dbus_server_new () {
 	MsgPortDbusServer *server = NULL;
-	gchar *address = g_strdup_printf (MSGPORT_DBUS_ADDRESS, g_get_user_runtime_dir());
+	gchar *address = g_strdup_printf (MESSAGEPORT_BUS_ADDRESS); //, g_get_user_runtime_dir());
 
     server = msgport_dbus_server_new_with_address (address);
     g_free (address);

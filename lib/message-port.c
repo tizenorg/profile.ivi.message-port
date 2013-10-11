@@ -1,47 +1,45 @@
 #include "message-port.h"
+#include "msgport-manager.h"
+#include "msgport-utils.h"
+#include "common/log.h"
 
 static int
 _messageport_register_port (const char *name, gboolean is_trusted, messageport_message_cb cb)
 {
-    (void) name;
-    (void) is_trusted;
-    (void) cb;
+    int port_id = 0; /* id of the port created */
+    messageport_error_e res;
+    MsgPortManager *manager = msgport_get_manager ();
 
-    return MESSAGEPORT_ERROR_NONE;
+    res = msgport_manager_register_service (manager, name, is_trusted, cb, &port_id);
+
+    return port_id > 0 ? port_id : (int)res;
 }
 
 static int
 _messageport_check_remote_port (const char *app_id, const char *port, gboolean is_trusted, gboolean *exists)
 {
-    (void) app_id;
-    (void) port;
-    (void) is_trusted;
+    guint service_id;
+    messageport_error_e res;
+    MsgPortManager *manager = msgport_get_manager ();
 
-    if (exists) *exists = FALSE;
+    res = msgport_manager_check_remote_service (manager, app_id, port, FALSE, &service_id);
 
-    return MESSAGEPORT_ERROR_MESSAGEPORT_NOT_FOUND;
+    if (exists) *exists = (res == MESSAGEPORT_ERROR_NONE);
+
+    return (int) res;
 }
 
 static int
 _messageport_send_message (const char *app_id, const char *port, gboolean is_trusted, bundle *message)
 {
-    (void) app_id;
-    (void) port;
-    (void) is_trusted;
-    (void) message;
+DBG("{");
+    MsgPortManager *manager = msgport_get_manager ();
+    GVariant *v_data = bundle_to_variant_map (message);
+    messageport_error_e res;
 
-    return MESSAGEPORT_ERROR_NONE;
-}
-
-static int
-_messageport_get_port_name (int port_id, gboolean is_trusted, gchar **name_out)
-{
-    (void) port_id;
-    (void) is_trusted;
-
-    if (name_out) **name_out = "";
-
-    return MESSAGEPORT_ERROR_MESSAGEPORT_NOT_FOUND;
+    res = msgport_manager_send_message (manager, app_id, port, is_trusted, v_data);
+DBG("}");
+    return (int) res;
 }
 
 /*
@@ -88,13 +86,19 @@ int messageport_send_bidirectional_trusted_message (int id, const char *remote_a
     return _messageport_send_message (remote_app_id, remote_port, TRUE, data);
 }
 
-int messageport_get_local_port_name(int id, char **name)
+int messageport_get_local_port_name(int port_id, char **name_out)
 {
-    return _messageport_get_port_name (id, FALSE, name);
+    MsgPortManager *manager = msgport_get_manager ();
+
+    return (int)msgport_manager_get_service_name (manager, port_id, name_out);
 }
 
-int messageport_check_trusted_local_port (int id, char **name)
+int messageport_check_trusted_local_port (int id, bool *exists)
 {
-    return _messageport_get_port_name (id, TRUE, name);
+    (void) id;
+
+    if (exists) *exists = FALSE;
+
+    return MESSAGEPORT_ERROR_NONE;
 }
 

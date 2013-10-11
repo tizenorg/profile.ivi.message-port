@@ -10,13 +10,16 @@
 #endif
 
 #include <bundle.h>
+#include <glib.h>
+
+typedef gboolean bool;
 
 G_BEGIN_DECLS
 
 /**
  * @brief Enumerations of error code for Application.
  */
-typedef enum
+typedef enum _messageport_error_e
 {
     MESSAGEPORT_ERROR_NONE = 0, /**< Successful */
     MESSAGEPORT_ERROR_IO_ERROR = -1,        /**< Internal I/O error */
@@ -226,7 +229,6 @@ EXPORT_API int messageport_get_local_port_name(int id, char **name);
  */
 EXPORT_API int messageport_check_trusted_local_port(int id, bool *trusted);
 
-
-G_EDN_DECLS
+G_END_DECLS
 
 #endif /* __MESSAGE_PORT_H */

@@ -69,6 +69,9 @@ msgport_dbus_service_get_connection (MsgPortDbusService *dbus_service);
 MsgPortService *
 msgport_dbus_service_get_service (MsgPortDbusService *dbus_service);
 
+guint
+msgport_dbus_service_get_id (MsgPortDbusService *dbus_service);
+
 MsgPortDbusManager *
 msgport_dbus_service_get_owner (MsgPortDbusService *dbus_service);
 
@@ -83,8 +86,10 @@ msgport_dbus_service_get_is_trusted (MsgPortDbusService *dbus_service);
 
 gboolean
 msgport_dbus_service_send_message (MsgPortDbusService *dbus_service,
-                                   GVariant *data,
-                                   const gchar *from);
+                                   GVariant    *data,
+                                   const gchar *remote_app_id,
+                                   const gchar *remote_port_name,
+                                   gboolean     remote_is_trusted);
 
 G_END_DECLS
 

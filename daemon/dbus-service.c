@@ -22,9 +22,9 @@
  */
 
 #include "dbus-service.h"
-#include "dbus-service-glue.h"
-#include "manager.h"
+#include "common/dbus-service-glue.h"
 #include "common/log.h"
+#include "manager.h"
 
 G_DEFINE_TYPE (MsgPortDbusService, msgport_dbus_service, G_TYPE_OBJECT)
 
@@ -36,6 +36,7 @@ struct _MsgPortDbusServicePrivate {
     MsgPortDbusGlueService *dbus_skeleton;
     MsgPortService *service;
     gchar *object_path;
+    guint id;
 };
 
 
@@ -76,7 +77,7 @@ static gboolean
 _dbus_service_handle_send_message (
     MsgPortDbusService    *dbus_service,
     GDBusMethodInvocation *invocation,
-    const gchar           *remote_service_path,
+    guint                   remote_service_id,
     GVariant              *data,
     gpointer               userdata)
 {
@@ -86,14 +87,16 @@ _dbus_service_handle_send_message (
     g_return_val_if_fail (dbus_service &&  MSGPORT_IS_DBUS_SERVICE (dbus_service), FALSE);
 
     manager = msgport_dbus_manager_get_manager (dbus_service->priv->owner);
-    peer_dbus_service = msgport_manager_get_service_by_path (manager, remote_service_path, &error);
+    peer_dbus_service = msgport_manager_get_service_by_id (manager, remote_service_id);
     if (!peer_dbus_service) {
         /* FIXME: return ENOTFOUND error */
         g_dbus_method_invocation_take_error (invocation, error);
     }
     else {
         msgport_dbus_service_send_message (peer_dbus_service, data,
-                dbus_service->priv->object_path);
+                msgport_dbus_service_get_app_id (dbus_service),
+                msgport_dbus_service_get_port_name (dbus_service),
+                msgport_dbus_service_get_is_trusted (dbus_service));
         msgport_dbus_glue_service_complete_send_message (
                 dbus_service->priv->dbus_skeleton, invocation);
     }
@@ -187,6 +190,7 @@ msgport_dbus_service_new (MsgPortDbusManager *owner, const gchar *name, gboolean
         g_free (object_path);
         return NULL;
     }
+    dbus_service->priv->id = object_conter;
     dbus_service->priv->owner = /*g_object_ref*/ (owner);
     dbus_service->priv->object_path = object_path;
     dbus_service->priv->service = msgport_service_new (
@@ -196,6 +200,14 @@ msgport_dbus_service_new (MsgPortDbusManager *owner, const gchar *name, gboolean
     g_assert (MSGPORT_IS_SERVICE (dbus_service->priv->service));
 
     return dbus_service;
+}
+
+guint
+msgport_dbus_service_get_id (MsgPortDbusService *dbus_service)
+{
+    g_return_val_if_fail (dbus_service && MSGPORT_IS_DBUS_SERVICE (dbus_service), 0);
+
+    return dbus_service->priv->id;
 }
 
 const gchar *
@@ -238,6 +250,14 @@ msgport_dbus_service_get_port_name (MsgPortDbusService *dbus_service)
     return msgport_service_get_port_name (dbus_service->priv->service);
 }
 
+const gchar *
+msgport_dbus_service_get_app_id (MsgPortDbusService *dbus_service)
+{
+    g_return_val_if_fail (dbus_service && MSGPORT_IS_DBUS_SERVICE (dbus_service), NULL);
+
+    return msgport_dbus_manager_get_app_id (dbus_service->priv->owner);
+}
+
 gboolean
 msgport_dbus_service_get_is_trusted (MsgPortDbusService *dbus_service)
 {
@@ -247,11 +267,11 @@ msgport_dbus_service_get_is_trusted (MsgPortDbusService *dbus_service)
 }
 
 gboolean
-msgport_dbus_service_send_message (MsgPortDbusService *dbus_service, GVariant *data, const gchar *from)
+msgport_dbus_service_send_message (MsgPortDbusService *dbus_service, GVariant *data, const gchar *r_app_id, const gchar *r_port, gboolean r_is_trusted)
 {
     g_return_val_if_fail (dbus_service && MSGPORT_IS_DBUS_SERVICE (dbus_service), FALSE);
 
-    msgport_dbus_glue_service_emit_on_message (dbus_service->priv->dbus_skeleton, data, from);
+    msgport_dbus_glue_service_emit_on_message (dbus_service->priv->dbus_skeleton, data, r_app_id, r_port, r_is_trusted);
     
     return TRUE;
 }
