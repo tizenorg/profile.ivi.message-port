@@ -39,6 +39,9 @@ msgport_service_id (MsgPortService *service);
 gboolean
 msgport_service_unregister (MsgPortService *service);
 
+messageport_error_e
+msgport_service_send_message (MsgPortService *service, guint remote_service_id, GVariant *message);
+
 G_END_DECLS
 
 #endif /* __MSGPORT_SERVICE_H */

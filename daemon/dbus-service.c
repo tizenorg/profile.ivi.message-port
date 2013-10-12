@@ -86,6 +86,7 @@ _dbus_service_handle_send_message (
     GError *error;
     g_return_val_if_fail (dbus_service &&  MSGPORT_IS_DBUS_SERVICE (dbus_service), FALSE);
 
+    DBG ("Send Message rquest on service %p to remote service id : %d", dbus_service, remote_service_id);
     manager = msgport_dbus_manager_get_manager (dbus_service->priv->owner);
     peer_dbus_service = msgport_manager_get_service_by_id (manager, remote_service_id);
     if (!peer_dbus_service) {
@@ -166,10 +167,10 @@ MsgPortDbusService *
 msgport_dbus_service_new (MsgPortDbusManager *owner, const gchar *name, gboolean is_trusted)
 {
     static guint object_conter = 0;
+
     MsgPortDbusService *dbus_service = NULL;
     GDBusConnection *connection = NULL;
     gchar *object_path = 0;
-
     GError *error = NULL;
 
     connection = msgport_dbus_manager_get_connection (owner),
@@ -271,6 +272,7 @@ msgport_dbus_service_send_message (MsgPortDbusService *dbus_service, GVariant *d
 {
     g_return_val_if_fail (dbus_service && MSGPORT_IS_DBUS_SERVICE (dbus_service), FALSE);
 
+    DBG ("Sending message to %p from '%s:%s'", dbus_service, r_app_id, r_port);
     msgport_dbus_glue_service_emit_on_message (dbus_service->priv->dbus_skeleton, data, r_app_id, r_port, r_is_trusted);
     
     return TRUE;

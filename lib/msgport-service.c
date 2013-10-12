@@ -159,7 +159,28 @@ gboolean
 msgport_service_unregister (MsgPortService *service)
 {
     g_return_val_if_fail (service && MSGPORT_IS_SERVICE (service), FALSE);
+    g_return_val_if_fail (service->proxy, FALSE);
 
-    return TRUE;
+    /* fire and forget */
+    return msgport_dbus_glue_service_call_unregister_sync (service->proxy, NULL, NULL);
+}
+
+messageport_error_e
+msgport_service_send_message (MsgPortService *service, guint remote_service_id, GVariant *message)
+{
+    GError *error = NULL;
+    g_return_val_if_fail (service && MSGPORT_IS_SERVICE (service), MESSAGEPORT_ERROR_IO_ERROR);
+    g_return_val_if_fail (service->proxy, MESSAGEPORT_ERROR_IO_ERROR);
+    g_return_val_if_fail (message, MESSAGEPORT_ERROR_INVALID_PARAMETER);
+
+    msgport_dbus_glue_service_call_send_message_sync (service->proxy, remote_service_id, message, NULL, &error);
+
+    if (error) {
+        WARN ("Fail to send message on service %p to %d : %s", service, remote_service_id, error->message);
+        g_error_free (error);
+        return MESSAGEPORT_ERROR_IO_ERROR;
+    }
+
+    return MESSAGEPORT_ERROR_NONE;
 }
 

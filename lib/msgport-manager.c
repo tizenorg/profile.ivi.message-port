@@ -184,6 +184,7 @@ msgport_manager_unregister_servcie (MsgPortManager *manager, int service_id)
 
     service = _get_local_port (manager, service_id);
     if (!service) {
+        WARN ("No local service found for service id '%d'", service_id);
         return MESSAGEPORT_ERROR_MESSAGEPORT_NOT_FOUND;
     }
 
@@ -269,5 +270,30 @@ msgport_manager_send_message (MsgPortManager *manager, const gchar *remote_app_i
     }
 
     return res;
+}
+
+messageport_error_e
+msgport_manager_send_bidirectional_message (MsgPortManager *manager, int local_port_id, const gchar *remote_app_id, const gchar *remote_port, gboolean is_trusted, GVariant *data)
+{
+    MsgPortService *service = NULL;
+    guint remote_service_id = 0;
+    messageport_error_e res = 0;
+
+    g_return_val_if_fail (manager && MSGPORT_IS_MANAGER (manager), MESSAGEPORT_ERROR_IO_ERROR);
+    g_return_val_if_fail (manager->proxy, MESSAGEPORT_ERROR_IO_ERROR);
+    g_return_val_if_fail (local_port_id > 0 && remote_app_id && remote_port, MESSAGEPORT_ERROR_INVALID_PARAMETER);
+
+    service = _get_local_port (manager, local_port_id);
+    if (!service) {
+        WARN ("No local service found for service id '%d'", local_port_id);
+        return MESSAGEPORT_ERROR_MESSAGEPORT_NOT_FOUND;
+    }
+    if ( (res = msgport_manager_check_remote_service (manager, remote_app_id, remote_port, is_trusted, &remote_service_id) != MESSAGEPORT_ERROR_NONE)) {
+        WARN ("No remote port informatuon for %s:%s, error : %d", remote_app_id, remote_port, res);
+        return MESSAGEPORT_ERROR_MESSAGEPORT_NOT_FOUND;
+    }
+
+    DBG ("Sending message from local service '%p' to remote sercie id '%d'", service, remote_service_id);
+    return msgport_service_send_message (service, remote_service_id, data);
 }
 
