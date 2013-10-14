@@ -59,7 +59,10 @@ struct _MsgPortDbusManagerClass
 GType msgport_dbus_manager_get_type (void);
 
 MsgPortDbusManager *
-msgport_dbus_manager_new (GDBusConnection *connection, MsgPortDbusServer *server, MsgPortManager *manager);
+msgport_dbus_manager_new (
+    GDBusConnection *connection,
+    MsgPortDbusServer *server,
+    GError **error);
 
 MsgPortManager *
 msgport_dbus_manager_get_manager (MsgPortDbusManager *dbus_manager);

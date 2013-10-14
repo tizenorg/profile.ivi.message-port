@@ -22,9 +22,11 @@
  */
 
 #include "manager.h"
+#include "common/dbus-error.h"
 #include "common/log.h"
 #include "dbus-manager.h"
 #include "dbus-service.h"
+#include "utils.h"
 
 G_DEFINE_TYPE (MsgPortManager, msgport_manager, G_TYPE_OBJECT)
 
@@ -117,11 +119,12 @@ msgport_manager_register_service (
     GError            **error)
 {
     GList   *service_list  = NULL; /* services list owned by a client */
-    gboolean was_empty = TRUE;
+    gboolean list_was_empty = TRUE;
     MsgPortDbusService *dbus_service = NULL;
 
-    g_return_val_if_fail (manager && MSGPORT_IS_MANAGER (manager), NULL);
-    g_return_val_if_fail (owner && MSGPORT_IS_DBUS_MANAGER (owner), NULL);
+    msgport_return_val_if_fail_with_error (manager && MSGPORT_IS_MANAGER (manager), NULL, error);
+    msgport_return_val_if_fail_with_error (owner && MSGPORT_IS_DBUS_MANAGER (owner), NULL, error);
+    msgport_return_val_if_fail_with_error (port_name && port_name[0], NULL, error);
 
     if ((service_list = (GList *)g_hash_table_lookup (manager->priv->owner_service_map, owner)) != NULL) {
         GList *list = NULL;
@@ -129,18 +132,19 @@ msgport_manager_register_service (
         for (list = service_list; list != NULL; list = list->next) {
             MsgPortDbusService *dbus_service = (MsgPortDbusService *)list->data;
 
-            if ( !g_strcmp0 (port_name, msgport_dbus_service_get_port_name (dbus_service))) {
-                /* FIXME: return EALREADY error */
+            if ( !g_strcmp0 (port_name, msgport_dbus_service_get_port_name (dbus_service)) && 
+                 msgport_dbus_service_get_is_trusted (dbus_service) == is_trusted ) {
+                if (error) {
+                    const gchar *app_id = msgport_dbus_service_get_app_id (dbus_service);
+                    *error = msgport_error_port_existing_new (app_id, port_name);
+                }
                 return NULL;
             }
         }
     }
 
-    was_empty = (service_list == NULL);
-
-    dbus_service = msgport_dbus_service_new (owner, port_name, is_trusted);
+    dbus_service = msgport_dbus_service_new (owner, port_name, is_trusted, error);
     if (!dbus_service) {
-        /* FIXME : return NOMEMERY error */
         return NULL;
     }
     /* cache newly created service */
@@ -148,9 +152,11 @@ msgport_manager_register_service (
         GINT_TO_POINTER (msgport_dbus_service_get_id (dbus_service)),
         (gpointer)dbus_service);
 
+    list_was_empty = (service_list == NULL);
+
    /* append to list of services */
     service_list = g_list_append (service_list, dbus_service);
-    if (was_empty) {
+    if (list_was_empty) {
         g_hash_table_insert (manager->priv->owner_service_map, owner, service_list);
     }
 
@@ -162,10 +168,14 @@ msgport_manager_get_service (
     MsgPortManager      *manager,
     MsgPortDbusManager  *owner,
     const gchar         *remote_port_name,
-    gboolean             is_trusted)
+    gboolean             is_trusted,
+    GError             **error)
 {
     GList *service_list = NULL;
-    g_return_val_if_fail (manager && MSGPORT_IS_MANAGER (manager), NULL);
+
+    msgport_return_val_if_fail_with_error (manager && MSGPORT_IS_MANAGER (manager), NULL, error);
+    msgport_return_val_if_fail_with_error (owner && MSGPORT_IS_DBUS_MANAGER (owner), NULL, error);
+    msgport_return_val_if_fail_with_error (remote_port_name && remote_port_name[0], NULL, error);
 
     service_list = g_hash_table_lookup (manager->priv->owner_service_map, owner);
     while (service_list != NULL) {
@@ -179,17 +189,21 @@ msgport_manager_get_service (
         service_list = service_list->next;
     }
 
-    /* FIXME: return ENOTFOUND */
+    if (error) *error = msgport_error_port_not_found (msgport_dbus_manager_get_app_id (owner), remote_port_name);
+
     return NULL;
 }
 
 MsgPortDbusService *
 msgport_manager_get_service_by_id (
     MsgPortManager *manager,
-    guint           service_id)
+    guint           service_id,
+    GError        **error)
 {
     MsgPortDbusService *dbus_service = NULL;
-    g_return_val_if_fail (manager && MSGPORT_IS_MANAGER (manager), NULL);
+
+    msgport_return_val_if_fail_with_error (manager && MSGPORT_IS_MANAGER (manager), NULL, error);
+    msgport_return_val_if_fail_with_error (service_id != 0, NULL, error);
 
     dbus_service = MSGPORT_DBUS_SERVICE (g_hash_table_lookup (
             manager->priv->service_cache, GINT_TO_POINTER(service_id)));
@@ -213,47 +227,26 @@ _unref_dbus_manager_cb (gpointer data, gpointer user_data)
 }
 
 /*
- * unregister all the services owned by a client
- */
-gboolean
-msgport_manager_unregister_services (
-    MsgPortManager     *manager,
-    MsgPortDbusManager *owner)
-{
-DBG("{");
-    GList *service_list = NULL;
-    g_return_val_if_fail (manager && MSGPORT_IS_MANAGER (manager), FALSE);
-
-    /* fetch sevice list owned by the client */
-    service_list = g_hash_table_lookup (manager->priv->owner_service_map, owner);
-    if (!service_list) {
-        DBG("   No service found");
-        return FALSE;
-    }
-
-    /* remove all the service from the list */
-    g_list_foreach (service_list, _unref_dbus_manager_cb, manager);
-    g_hash_table_remove (manager->priv->owner_service_map, owner);
-DBG("}");
-    return TRUE;
-}
-
-/*
  * unregister a signle service for given service id
  */
 gboolean
 msgport_manager_unregister_service (
     MsgPortManager *manager,
-    gint            service_id)
+    gint            service_id,
+    GError        **error)
 {
     MsgPortDbusService *service = NULL;
     MsgPortDbusManager *owner = NULL;
     GList *service_list = NULL, *new_service_list = NULL;
-    g_return_val_if_fail (manager && MSGPORT_IS_MANAGER (manager), FALSE);
+
+    msgport_return_val_if_fail_with_error (manager && MSGPORT_IS_MANAGER (manager), FALSE, error);
 
     service = g_hash_table_lookup (manager->priv->service_cache, GINT_TO_POINTER (service_id));
 
-    if (!service) return FALSE;
+    if (!service) {
+        if (error) *error = msgport_error_port_id_not_found_new (service_id);
+        return FALSE;
+    }
 
     owner = msgport_dbus_service_get_owner (service);
 
@@ -272,4 +265,33 @@ msgport_manager_unregister_service (
 
     return TRUE;
 }
+
+/*
+ * unregister all the services owned by a client
+ */
+gboolean
+msgport_manager_unregister_services (
+    MsgPortManager     *manager,
+    MsgPortDbusManager *owner,
+    GError            **error)
+{
+
+    GList *service_list = NULL;
+
+    msgport_return_val_if_fail_with_error (manager && MSGPORT_IS_MANAGER (manager), FALSE, error);
+
+    /* fetch sevice list owned by the client */
+    service_list = g_hash_table_lookup (manager->priv->owner_service_map, owner);
+    if (!service_list) {
+        DBG("no services found on client '%p'", owner);
+        return TRUE;
+    }
+
+    /* remove all the service from the list */
+    g_list_foreach (service_list, _unref_dbus_manager_cb, manager);
+    g_hash_table_remove (manager->priv->owner_service_map, owner);
+
+    return TRUE;
+}
+
 

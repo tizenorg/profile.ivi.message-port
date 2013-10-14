@@ -27,7 +27,6 @@
 #include <glib.h>
 #include <gio/gio.h>
 #include <glib-object.h>
-#include "service.h"
 #include "dbus-manager.h"
 
 G_BEGIN_DECLS
@@ -58,16 +57,13 @@ struct _MsgPortDbusServiceClass
 GType msgport_dbus_service_get_type (void);
 
 MsgPortDbusService *
-msgport_dbus_service_new (MsgPortDbusManager *owner, const gchar *name, gboolean is_trusted);
+msgport_dbus_service_new (MsgPortDbusManager *owner, const gchar *name, gboolean is_trusted, GError **error_out);
 
 const gchar *
 msgport_dbus_service_get_object_path (MsgPortDbusService *dbus_service);
 
 GDBusConnection *
 msgport_dbus_service_get_connection (MsgPortDbusService *dbus_service);
-
-MsgPortService *
-msgport_dbus_service_get_service (MsgPortDbusService *dbus_service);
 
 guint
 msgport_dbus_service_get_id (MsgPortDbusService *dbus_service);
@@ -89,7 +85,8 @@ msgport_dbus_service_send_message (MsgPortDbusService *dbus_service,
                                    GVariant    *data,
                                    const gchar *remote_app_id,
                                    const gchar *remote_port_name,
-                                   gboolean     remote_is_trusted);
+                                   gboolean     remote_is_trusted,
+                                   GError     **error_out);
 
 G_END_DECLS
 

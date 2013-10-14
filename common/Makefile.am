@@ -20,6 +20,8 @@ nodist_libmessageport_dbus_glue_la_SOURCES = \
     dbus-manager-glue.c \
     dubs-service-glue.h \
     dbus-service-glue.c \
+    dbus-error.h \
+    dbus-error.c \
     $(NULL)
     
 libmessageport_dbus_glue_la_CPPFLAGS = \

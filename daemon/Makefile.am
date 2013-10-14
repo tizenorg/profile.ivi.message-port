@@ -8,8 +8,6 @@ messageportd_SOURCES = \
     dbus-manager.c \
     dbus-server.h \
     dbus-server.c \
-    service.h \
-    service.c \
     manager.h \
     manager.c \
     main.c \
@@ -17,12 +15,12 @@ messageportd_SOURCES = \
 
 messageportd_CPPFLAGS = \
     -I$(top_builddir) \
-    $(GLIB_CLFAGS) $(GIO_CFLAGS) \
+    $(GLIB_CLFAGS) $(GIO_CFLAGS) $(AUL_CFLAGS) \
     $(NULL)
 
 messageportd_LDADD = \
     ../common/libmessageport-dbus-glue.la \
-    $(GLIB_LIBS) $(GIO_LIBS) \
+    $(GLIB_LIBS) $(GIO_LIBS) $(AUL_LIBS) \
     $(NULL)
 
 CLEANFILES = 

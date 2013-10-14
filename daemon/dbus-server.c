@@ -29,7 +29,6 @@
 #include "common/log.h"
 #include "dbus-server.h"
 #include "dbus-manager.h"
-#include "manager.h"
 
 
 G_DEFINE_TYPE (MsgPortDbusServer, msgport_dbus_server, G_TYPE_OBJECT)
@@ -56,7 +55,6 @@ struct _MsgPortDbusServerPrivate
 {
     GDBusServer    *bus_server;
     gchar          *address;
-    MsgPortManager *manager;
     GHashTable     *dbus_managers; /* {GDBusConnection,MsgPortDbusManager} */
 };
 
@@ -174,7 +172,6 @@ msgport_dbus_server_init (MsgPortDbusServer *self)
     self->priv->bus_server = NULL;
     self->priv->address = NULL;
 
-    self->priv->manager = msgport_manager_new ();
     self->priv->dbus_managers = g_hash_table_new_full (
         g_direct_hash, g_direct_equal, NULL, g_object_unref);
 }
@@ -208,11 +205,17 @@ msgport_dbus_server_start_dbus_manager_for_connection (
     GDBusConnection *connection)
 {
     MsgPortDbusManager *dbus_manager = NULL;
+    GError *error = NULL;
 
     DBG("Starting dbus manager on connection %p", connection);
 
     dbus_manager = msgport_dbus_manager_new (
-        connection, server, server->priv->manager);
+        connection, server, &error);
+    if (!dbus_manager) {
+        WARN ("Could not create dbus manager on conneciton %p: %s", connection, error->message);
+        g_error_free (error);
+        return;
+    }
 
     g_hash_table_insert (server->priv->dbus_managers, connection, dbus_manager);
 
@@ -223,11 +226,8 @@ static gboolean
 _on_client_request (GDBusServer *dbus_server, GDBusConnection *connection, gpointer userdata)
 {
     MsgPortDbusServer *server = MSGPORT_DBUS_SERVER(userdata);
-
-    if (!server) {
-        ERR ("memory corruption");
-        return TRUE;
-    }
+    
+    g_return_val_if_fail (server && MSGPORT_IS_DBUS_SERVER (server), FALSE);
 
     msgport_dbus_server_start_dbus_manager_for_connection (server, connection);
 
@@ -295,14 +295,6 @@ msgport_dbus_server_new () {
     g_free (address);
 
     return server ;
-}
-
-MsgPortManager *
-msgport_dbus_server_get_manager (MsgPortDbusServer *server)
-{
-    g_return_val_if_fail (server && MSGPORT_IS_DBUS_SERVER (server), NULL);
-
-    return server->priv->manager;
 }
 
 static gboolean
