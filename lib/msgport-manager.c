@@ -1,6 +1,6 @@
 #include "msgport-manager.h"
 #include "msgport-service.h"
-#include "message-port.h" /* MESSAGEPORT_ERROR */
+#include "message-port.h" /* messageport_error_e */
 #include "common/dbus-manager-glue.h"
 #include "common/log.h"
 #include "config.h" /* MESSAGEPORT_BUS_ADDRESS */
@@ -132,6 +132,31 @@ _create_and_cache_service (MsgPortManager *manager, gchar *object_path, messagep
     return id;
 }
 
+messageport_error_e
+msgport_manager_register_service (MsgPortManager *manager, const gchar *port_name, gboolean is_trusted, messageport_message_cb message_cb, int *service_id)
+{
+    GError *error = NULL;
+    gchar *object_path = NULL;
+
+    g_return_val_if_fail (manager && MSGPORT_IS_MANAGER (manager), MESSAGEPORT_ERROR_IO_ERROR);
+    g_return_val_if_fail (manager->proxy, MESSAGEPORT_ERROR_IO_ERROR);
+    g_return_val_if_fail (service_id && port_name && message_cb, MESSAGEPORT_ERROR_INVALID_PARAMETER);
+
+    msgport_dbus_glue_manager_call_register_service_sync (manager->proxy,
+            port_name, is_trusted, &object_path, NULL, &error);
+
+    if (error) {
+        WARN ("unable to register service (%s): %s", port_name, error->message);
+        messageport_error_e res = msgport_daemon_error_to_error(error);
+        g_error_free (error);
+        return res; 
+    }
+
+    *service_id = _create_and_cache_service (manager, object_path, message_cb);
+
+    return MESSAGEPORT_ERROR_NONE;
+}
+
 static MsgPortService *
 _get_local_port (MsgPortManager *manager, int service_id)
 {
@@ -148,30 +173,6 @@ _get_local_port (MsgPortManager *manager, int service_id)
     }
 
     return service;
-}
-
-messageport_error_e
-msgport_manager_register_service (MsgPortManager *manager, const gchar *port_name, gboolean is_trusted, messageport_message_cb message_cb, int *service_id)
-{
-    GError *error = NULL;
-    gchar *object_path = NULL;
-
-    g_return_val_if_fail (manager && MSGPORT_IS_MANAGER (manager), MESSAGEPORT_ERROR_IO_ERROR);
-    g_return_val_if_fail (manager->proxy, MESSAGEPORT_ERROR_IO_ERROR);
-    g_return_val_if_fail (service_id && port_name && message_cb, MESSAGEPORT_ERROR_INVALID_PARAMETER);
-
-    msgport_dbus_glue_manager_call_register_service_sync (manager->proxy,
-            port_name, is_trusted, &object_path, NULL, &error);
-
-    if (error) {
-        WARN ("unable to register service (%s): %s", port_name, error->message);
-        g_error_free (error);
-        return MESSAGEPORT_ERROR_IO_ERROR;
-    }
-
-    *service_id = _create_and_cache_service (manager, object_path, message_cb);
-
-    return MESSAGEPORT_ERROR_NONE;
 }
 
 messageport_error_e

@@ -1,9 +1,9 @@
 <!DOCTYPE node PUBLIC "-//freedesktop//DTD D-BUS Object Introspection 1.0//EN" "http://www.freedesktop.org/standards/dbus/1.0/introspect.dtd">
 <node>
   <interface name="org.tizen.messageport.Service">
-    <method name="getProperties">
-      <arg name="properties" type="a{sv}" direction="out"/>
-    </method>
+    <property name="Id" type="u" access="read"/>
+    <property name="PortName" type="s" access="read"/>
+    <property name="IsTrusted" type="b" access="read"/>
     <method name="unregister"/>
     <method name="sendMessage">
       <arg name="remote_service_id" type="u" direction="in"/>
@@ -15,5 +15,6 @@
       <arg name="remote_port_name" type="s"/>
       <arg name="remote_is_trusted" type="b"/>
     </signal>
+    <signal name="unregistered"/>
   </interface>
 </node>

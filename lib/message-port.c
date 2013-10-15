@@ -10,6 +10,9 @@ _messageport_register_port (const char *name, gboolean is_trusted, messageport_m
     messageport_error_e res;
     MsgPortManager *manager = msgport_get_manager ();
 
+    g_assert (manager);
+    g_assert (MSGPORT_IS_MANAGER (manager));
+
     res = msgport_manager_register_service (manager, name, is_trusted, cb, &port_id);
 
     return port_id > 0 ? port_id : (int)res;
@@ -25,7 +28,7 @@ _messageport_check_remote_port (const char *app_id, const char *port, gboolean i
 
     if (exists) *exists = (res == MESSAGEPORT_ERROR_NONE);
 
-    return (int) res;
+    return res;
 }
 
 static messageport_error_e

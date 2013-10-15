@@ -1,4 +1,5 @@
 #include "msgport-utils.h"
+#include "common/dbus-error.h" /* MsgPortError */
 #include "common/log.h"
 
 static void
@@ -51,3 +52,22 @@ bundle * bundle_from_variant_map (GVariant *v_data)
     return b;
 }
 
+messageport_error_e
+msgport_daemon_error_to_error (const GError *error)
+{
+    if (!error) return MESSAGEPORT_ERROR_NONE;
+
+    switch (error->code) {
+        case MSGPORT_ERROR_OUT_OF_MEMORY:
+            return MESSAGEPORT_ERROR_OUT_OF_MEMORY;
+        case MSGPORT_ERROR_NOT_FOUND:
+            return MESSAGEPORT_ERROR_MESSAGEPORT_NOT_FOUND;
+        case MSGPORT_ERROR_INVALID_PARAMS:
+            return MESSAGEPORT_ERROR_INVALID_PARAMETER;
+        case MSGPORT_ERROR_CERTIFICATE_MISMATCH:
+            return MESSAGEPORT_ERROR_CERTIFICATE_NOT_MATCH;
+        case MSGPORT_ERROR_UNKNOWN:
+        case MSGPORT_ERROR_IO_ERROR:
+            return MESSAGEPORT_ERROR_IO_ERROR;
+    }
+}

@@ -33,7 +33,7 @@ msgport_service_name (MsgPortService *service);
 gboolean
 msgport_service_is_trusted (MsgPortService *service);
 
-int
+guint
 msgport_service_id (MsgPortService *service);
 
 gboolean

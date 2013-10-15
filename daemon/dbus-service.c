@@ -114,43 +114,6 @@ _dbus_service_handle_unregister (
     return TRUE;
 }
 
-static GVariant *
-_msgport_service_to_variant (MsgPortDbusService *service)
-{
-    GVariantBuilder v_builder;
-    g_return_val_if_fail (service && MSGPORT_IS_DBUS_SERVICE (service), NULL);
-
-    g_variant_builder_init (&v_builder, G_VARIANT_TYPE_VARDICT);
-
-    g_variant_builder_add (&v_builder, "{sv}", "Id",
-            g_variant_new_int32 (service->priv->id));
-    g_variant_builder_add (&v_builder, "{sv}", "AappId",
-            g_variant_new_string (msgport_dbus_manager_get_app_id 
-                (service->priv->owner)));
-    g_variant_builder_add (&v_builder, "{sv}", "PortName",
-            g_variant_new_string (service->priv->port_name));
-    g_variant_builder_add (&v_builder, "{sv}", "IsTrusted",
-            g_variant_new_boolean (service->priv->is_trusted));
-
-    return g_variant_builder_end (&v_builder);
-}
-
-static gboolean
-_dbus_service_handle_get_properties (
-    MsgPortDbusService    *dbus_service,
-    GDBusMethodInvocation *invocation,
-    gpointer               userdata)
-{
-    g_return_val_if_fail (dbus_service && MSGPORT_IS_DBUS_SERVICE (dbus_service), FALSE);
-
-    msgport_dbus_glue_service_complete_get_properties (
-            dbus_service->priv->dbus_skeleton,
-            invocation,
-            _msgport_service_to_variant (dbus_service));
-
-    return TRUE;
-}
-
 static void
 msgport_dbus_service_init (MsgPortDbusService *self)
 {
@@ -165,8 +128,6 @@ msgport_dbus_service_init (MsgPortDbusService *self)
                 G_CALLBACK (_dbus_service_handle_send_message), (gpointer)self);
     g_signal_connect_swapped (priv->dbus_skeleton, "handle-unregister",
                 G_CALLBACK (_dbus_service_handle_unregister), (gpointer)self);
-    g_signal_connect_swapped (priv->dbus_skeleton, "handle-get-properties",
-                G_CALLBACK (_dbus_service_handle_get_properties), (gpointer)self);
 
     self->priv = priv;
 }
@@ -221,6 +182,12 @@ msgport_dbus_service_new (MsgPortDbusManager *owner, const gchar *name, gboolean
         return NULL;
     }
     g_free (object_path);
+
+    /* set dbus-properties */
+    g_object_set (G_OBJECT (dbus_service->priv->dbus_skeleton), 
+                            "id", dbus_service->priv->id,
+                            "port-name", dbus_service->priv->port_name,
+                            "is-trusted", dbus_service->priv->is_trusted, NULL);
 
     ++object_conter;
     
