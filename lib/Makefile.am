@@ -24,7 +24,7 @@ libmessage_port_la_CPPFLAGS = \
     $(NULL)
 
 libmessage_port_la_LIBADD = \
-    ../common/libmessageport-dbus-glue.la \
+    ../common/libmessageport-common.la \
     $(GLIB_LIBS) $(GIO_LIBS) $(BUNDLE_LIBS)
 
 

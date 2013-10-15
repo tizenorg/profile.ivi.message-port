@@ -19,7 +19,7 @@ messageportd_CPPFLAGS = \
     $(NULL)
 
 messageportd_LDADD = \
-    ../common/libmessageport-dbus-glue.la \
+    ../common/libmessageport-common.la \
     $(GLIB_LIBS) $(GIO_LIBS) $(AUL_LIBS) $(PKGMGRINFO_LIBS) \
     $(NULL)
 

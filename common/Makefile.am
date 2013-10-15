@@ -1,4 +1,4 @@
-lib_LTLIBRARIES = libmessageport-dbus-glue.la 
+noinst_LTLIBRARIES = libmessageport-dbus-glue.la  libmessageport-common.la
 NULL = 
 
 dbus-manager-glue.c dbus-maanager-glue.h : org.tizen.messageport.Manager.xml
@@ -15,20 +15,43 @@ dbus-service-glue.c dbus-service-glue.h : org.tizen.messageport.Service.xml
         --generate-c-code  dbus-service-glue     \
         $<
 
-nodist_libmessageport_dbus_glue_la_SOURCES = \
+#
+# libmessageport-dbus-glue.la
+#
+libmessageport_dbus_glue_la_SOURCES = \
     dbus-manager-glue.h \
     dbus-manager-glue.c \
     dubs-service-glue.h \
     dbus-service-glue.c \
-    dbus-error.h \
-    dbus-error.c \
     $(NULL)
     
 libmessageport_dbus_glue_la_CPPFLAGS = \
     -I$(top_builddir) \
-    $(GLIB_CFLAGS) $(GIO_CFLAGS) $(GIOUNIX_CFLAGS)
+    $(GLIB_CFLAGS) $(GIO_CFLAGS) $(GIOUNIX_CFLAGS) \
+    $(NULL)
 
 libmessageport_dbus_glue_la_LIBADD = \
-    $(GLIB_LIBS) $(GIO_LIBS) $(GIOUNIX_LIBS)
+    $(GLIB_LIBS) $(GIO_LIBS) $(GIOUNIX_LIBS) \
+    $(NULL)
+
+
+#
+# libmessageport-common.la
+#
+libmessageport_common_la_SOURCES = \
+    -I$(top_builddir) \
+    dbus-error.h \
+    dbus-error.c \
+    $(NULL)
+
+libmessageport_common_la_CPPFLAGS = \
+    -I$(top_builddir) \
+    $(GLIB_CFLAGS) $(GIO_CFLAGS) $(GIOUNIX_CFLAGS) \
+    $(NULL)
+
+libmessageport_common_la_LIBADD = \
+    ./libmessageport-dbus-glue.la \
+    $(GLIB_LIBS) $(GIO_LIBS) $(GIOUNIX_LIBS) \
+    $(NULL)
 
 CLEANFILES = 
