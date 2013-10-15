@@ -218,7 +218,8 @@ msgport_manager_check_remote_service (MsgPortManager *manager, const gchar *app_
             app_id, port, is_trusted, &remote_service_id, NULL, &error);
 
     if (error) {
-        WARN ("No service found for app_id %s, port name %s: %s", app_id, port, error->message);
+        WARN ("No %sservice found for app_id %s, port name %s: %s", 
+                is_trusted ? "trusted " : "", app_id, port, error->message);
         g_error_free (error);
         return MESSAGEPORT_ERROR_MESSAGEPORT_NOT_FOUND;
     }
@@ -290,7 +291,7 @@ msgport_manager_send_bidirectional_message (MsgPortManager *manager, int local_p
         return MESSAGEPORT_ERROR_MESSAGEPORT_NOT_FOUND;
     }
     if ( (res = msgport_manager_check_remote_service (manager, remote_app_id, remote_port, is_trusted, &remote_service_id) != MESSAGEPORT_ERROR_NONE)) {
-        WARN ("No remote port informatuon for %s:%s, error : %d", remote_app_id, remote_port, res);
+        WARN ("No remote %sport informatuon for %s:%s, error : %d", is_trusted ? "trusted " : "", remote_app_id, remote_port, res);
         return MESSAGEPORT_ERROR_MESSAGEPORT_NOT_FOUND;
     }
 

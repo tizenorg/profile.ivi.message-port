@@ -181,6 +181,10 @@ msgport_manager_get_service (
     while (service_list != NULL) {
         MsgPortDbusService *dbus_service = MSGPORT_DBUS_SERVICE (service_list->data);
 
+        DBG ("Owner : %p - Port : %s, Is_trusted : %d", owner,
+            msgport_dbus_service_get_port_name (dbus_service),
+            msgport_dbus_service_get_is_trusted (dbus_service));
+
         if ( !g_strcmp0 (remote_port_name, msgport_dbus_service_get_port_name (dbus_service)) && 
              is_trusted == msgport_dbus_service_get_is_trusted (dbus_service)) {
             return dbus_service ;

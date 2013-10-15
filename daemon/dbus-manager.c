@@ -42,6 +42,8 @@ struct _MsgPortDbusManagerPrivate {
     MsgPortManager         *manager;
     MsgPortDbusServer      *server;
     gchar                  *app_id;
+    gboolean                is_null_cert;
+    GHashTable             *peer_certs;
 };
 
 
@@ -71,6 +73,11 @@ _dbus_manager_dispose (GObject *self)
     msgport_manager_unregister_services (dbus_mgr->priv->manager, dbus_mgr, NULL);
 
     g_clear_object (&dbus_mgr->priv->manager);
+
+    if (dbus_mgr->priv->peer_certs) {
+        g_hash_table_unref (dbus_mgr->priv->peer_certs);
+        dbus_mgr->priv->peer_certs = NULL;
+    }
 
     G_OBJECT_CLASS (msgport_dbus_manager_parent_class)->dispose (self);
 }
@@ -122,7 +129,8 @@ _dbus_manager_handle_check_for_remote_service (
 
     msgport_return_val_if_fail (dbus_mgr && MSGPORT_IS_DBUS_MANAGER (dbus_mgr), FALSE);
 
-    DBG ("check remote service request from %p for %s %s", dbus_mgr, remote_app_id, remote_port_name);
+    DBG ("check remote service request from %p for %s %s %d", 
+            dbus_mgr, remote_app_id, remote_port_name, is_trusted);
 
     remote_dbus_manager = msgport_dbus_server_get_dbus_manager_by_app_id (
                 dbus_mgr->priv->server, remote_app_id);
@@ -154,17 +162,17 @@ _dbus_manager_handle_send_message (
     gpointer               userdata)
 {
     GError *error = NULL;
-    MsgPortDbusService *dbus_service = 0;
+    MsgPortDbusService *peer_dbus_service = 0;
 
     msgport_return_val_if_fail (dbus_mgr && MSGPORT_IS_DBUS_MANAGER (dbus_mgr), FALSE);
 
     DBG ("send_message from %p : %d ", dbus_mgr, service_id);
 
-    dbus_service = msgport_manager_get_service_by_id (
+    peer_dbus_service = msgport_manager_get_service_by_id (
             dbus_mgr->priv->manager, service_id, &error);
 
-    if (dbus_service){
-        if (msgport_dbus_service_send_message (dbus_service, data, "", "", FALSE, &error)) {
+    if (peer_dbus_service) {
+        if (msgport_dbus_service_send_message (peer_dbus_service, data, dbus_mgr->priv->app_id, "", FALSE, &error)) {
             msgport_dbus_glue_manager_complete_send_message (
                 dbus_mgr->priv->dbus_skeleton, invocation);
             return TRUE;
@@ -195,6 +203,8 @@ msgport_dbus_manager_init (MsgPortDbusManager *self)
 
     priv->dbus_skeleton = msgport_dbus_glue_manager_skeleton_new ();
     priv->manager = msgport_manager_new ();
+    priv->is_null_cert = FALSE;
+    priv->peer_certs = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, NULL);
 
     g_signal_connect_swapped (priv->dbus_skeleton, "handle-register-service",
                 G_CALLBACK (_dbus_manager_handle_register_service), (gpointer)self);
@@ -292,5 +302,38 @@ msgport_dbus_manager_get_app_id (MsgPortDbusManager *dbus_manager)
     msgport_return_val_if_fail (dbus_manager && MSGPORT_IS_DBUS_MANAGER (dbus_manager), NULL);
 
     return (const gchar *)dbus_manager->priv->app_id;
+}
+
+gboolean
+msgport_dbus_manager_validate_peer_certificate (MsgPortDbusManager *dbus_manager, const gchar *peer_app_id)
+{
+    //int res ;
+    //pkgmgrinfo_cert_compare_result_type_e compare_result;
+    gboolean is_valid_cert = FALSE;
+
+    /* check if the source application has no certificate info */
+    if (dbus_manager->priv->is_null_cert)
+        return TRUE; /* allow all peers to connect */
+
+    /* check if we have cached status */
+    if (g_hash_table_contains (dbus_manager->priv->peer_certs, peer_app_id))
+        return (gboolean) g_hash_table_lookup (dbus_manager->priv->peer_certs, peer_app_id);
+#if 0
+    if ((res = pkgmgrinfo_pkginfo_compare_app_cert_info (dbus_manager->priv->app_id,
+                    peer_app_id, &compare_result)) != PACKAGE_MANAGER_ERROR_NONE) {
+        WARN ("Fail to compare certificates of applications('%s', '%s') : error %d", 
+                dbus_manager->priv->app_id, peer_app_id, res);
+        return FALSE;
+    }
+    if (compare_result == PMINFO_CERT_COMPARE_LHS_NO_CERT) {
+        dbus_manager->priv->is_null_cert = TRUE;
+        return TRUE;
+    }
+
+    is_valid_cert = (compare_result == PMINFO_CERT_COMPARE_MATCH) ;
+    g_hash_table_insert (dbus_manager->priv->peer_certs, g_strdup (peer_app_id), (gpointer)is_valid_cert);
+#endif
+
+    return is_valid_cert;
 }
 

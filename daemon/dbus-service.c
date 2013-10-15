@@ -262,6 +262,12 @@ msgport_dbus_service_send_message (
 {
     msgport_return_val_if_fail_with_error (dbus_service && MSGPORT_IS_DBUS_SERVICE (dbus_service), FALSE, error);
 
+    if (dbus_service->priv->is_trusted &&
+        !msgport_dbus_manager_validate_peer_certificate (dbus_service->priv->owner, r_app_id)) {
+        if (error) *error = msgport_error_certificate_mismatch_new ();
+        return FALSE;
+    }
+
     DBG ("Sending message to %p from '%s:%s'", dbus_service, r_app_id, r_port);
     msgport_dbus_glue_service_emit_on_message (dbus_service->priv->dbus_skeleton, data, r_app_id, r_port, r_is_trusted);
  

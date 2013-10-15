@@ -15,12 +15,12 @@ messageportd_SOURCES = \
 
 messageportd_CPPFLAGS = \
     -I$(top_builddir) \
-    $(GLIB_CLFAGS) $(GIO_CFLAGS) $(AUL_CFLAGS) \
+    $(GLIB_CLFAGS) $(GIO_CFLAGS) $(AUL_CFLAGS) $(PKGMGRINFO_CFLAGS)\
     $(NULL)
 
 messageportd_LDADD = \
     ../common/libmessageport-dbus-glue.la \
-    $(GLIB_LIBS) $(GIO_LIBS) $(AUL_LIBS) \
+    $(GLIB_LIBS) $(GIO_LIBS) $(AUL_LIBS) $(PKGMGRINFO_LIBS) \
     $(NULL)
 
 CLEANFILES = 

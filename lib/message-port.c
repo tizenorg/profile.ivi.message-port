@@ -24,7 +24,7 @@ _messageport_check_remote_port (const char *app_id, const char *port, gboolean i
     messageport_error_e res;
     MsgPortManager *manager = msgport_get_manager ();
 
-    res = msgport_manager_check_remote_service (manager, app_id, port, FALSE, NULL);
+    res = msgport_manager_check_remote_service (manager, app_id, port, is_trusted, NULL);
 
     if (exists) *exists = (res == MESSAGEPORT_ERROR_NONE);
 

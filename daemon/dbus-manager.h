@@ -73,6 +73,10 @@ msgport_dbus_manager_get_connection (MsgPortDbusManager *dbus_manager);
 const gchar *
 msgport_dbus_manager_get_app_id (MsgPortDbusManager *dbus_manager);
 
+gboolean
+msgport_dbus_manager_validate_peer_certificate (MsgPortDbusManager *dbus_manager,
+                                                const gchar *peer_app_id);
+
 G_END_DECLS
 
 #endif /* _MSGPORT_DBUS_MANAER_H */

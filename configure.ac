@@ -31,6 +31,10 @@ AC_SUBST(GIOUINX_LIBS)
 AC_SUBST(AUL_CFLAGS)
 AC_SUBST(AUL_LIBS)
 
+#PKG_CHECK_MODULES([PKGMGRINFO], [pkgmgr-info])
+AC_SUBST(PKGMGRINFO_CFLAGS)
+AC_SUBST(PKGMGRINFO_LIBS)
+
 PKG_CHECK_MODULES([BUNDLE], [bundle])
 AC_SUBST(BUNDLE_CFLAGS)
 AC_SUBST(BUNDLE_LIBS)
@@ -38,6 +42,15 @@ AC_SUBST(BUNDLE_LIBS)
 AC_DEFINE(MESSAGEPORT_BUS_ADDRESS, 
          ["unix:path=%s/.message-port", g_get_user_runtime_dir()],
          [messageport daemon server socket address])
+
+# Enable Debug
+AC_ARG_ENABLE(debug, 
+              [--enable-debug Eenable debug features],
+              [enable_debug=$enableval], [enable_debug=no])
+if test "x$enable_debug" = "xyes" ; then
+    AC_DEFINE(ENABLE_DEBUG, [1], [Enable debug features])
+fi
+
 
 # Checks for header files.
 AC_CHECK_HEADERS([string.h])

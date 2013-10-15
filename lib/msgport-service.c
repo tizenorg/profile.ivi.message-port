@@ -60,7 +60,6 @@ _on_got_message (MsgPortService *service, GVariant *data, const gchar *remote_ap
 MsgPortService *
 msgport_service_new (GDBusConnection *connection, const gchar *path, messageport_message_cb message_cb)
 {
-    //GVariant *v_prop = NULL;
     GError *error = NULL;
 
     MsgPortService *service = g_object_new (MSGPORT_TYPE_SERVICE, NULL);
@@ -72,36 +71,11 @@ msgport_service_new (GDBusConnection *connection, const gchar *path, messageport
                 G_DBUS_PROXY_FLAGS_NONE, NULL, path, NULL, &error);
     if (!service->proxy) {
         g_object_unref (service);
-        WARN ("failed create servie proxy for path '%s' : %s", path,
-                error->message);
+        WARN ("failed create servie proxy for path '%s' : %s", path, error->message);
         g_error_free (error);
         return NULL;
     }
-#if 0
-    v_prop = g_dbus_proxy_get_cached_property (G_DBUS_PROXY (service->proxy), "Id");
-    if (v_prop) {
-        service->id = g_variant_get_uint32 (v_prop);
-        g_variant_unref (v_prop);
-    } else {
-        WARN ("Could not load property name 'Id' of service '%s'", path);
-    }
 
-    v_prop = g_dbus_proxy_get_cached_property (G_DBUS_PROXY (service->proxy), "PortName");
-    if (v_prop) {
-        service->name = g_strdup (g_variant_get_string (v_prop, NULL));
-        g_variant_unref (v_prop);
-    } else {
-        WARN ("Could not load property name 'PortName' of service '%s'", path);
-    }
-
-    v_prop = g_dbus_proxy_get_cached_property (G_DBUS_PROXY (service->proxy), "IsTrusted");
-    if (v_prop) {
-        service->is_trusted = g_variant_get_boolean (v_prop);
-        g_object_unref (v_prop);
-    } else {
-        WARN ("Could not load property name 'IsTrusted' of service '%s'", path);
-    }
-#endif
     service->client_cb = message_cb;
     service->on_messge_signal_id = g_signal_connect_swapped (service->proxy, "on-message", G_CALLBACK (_on_got_message), service);
 

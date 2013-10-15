@@ -68,7 +68,7 @@ void (_on_parent_got_message)(int port_id, const char* remote_app_id, const char
 
 int _register_test_port (const gchar *port_name, messageport_message_cb cb)
 {
-    int port_id = messageport_register_local_port (port_name, cb);
+    int port_id = messageport_register_trusted_local_port (port_name, cb);
 
     if (port_id > MESSAGEPORT_ERROR_NONE) {
         gchar *name = NULL;
@@ -105,7 +105,7 @@ int main (int argc, char *argv[])
         sleep (5);
         gchar *parent_app_id = g_strdup_printf ("%d", getppid());
         gboolean found;
-        messageport_error_e res = messageport_check_remote_port (parent_app_id, "test_parent_port", &found);
+        messageport_error_e res = messageport_check_trusted_remote_port (parent_app_id, "test_parent_port", &found);
 
         if (!found) {
             DBG ("CHILD : Could not found remote port (%d)", res);
@@ -118,7 +118,7 @@ int main (int argc, char *argv[])
         bundle_add (b, "Name", "Amarnath");
         bundle_add (b, "Email", "amarnath.valluri@intel.com");
 
-        res = messageport_send_bidirectional_message(port_id, parent_app_id, "test_parent_port", b);
+        res = messageport_send_bidirectional_trusted_message(port_id, parent_app_id, "test_parent_port", b);
         bundle_free (b);
         if (res != MESSAGEPORT_ERROR_NONE)
         {
