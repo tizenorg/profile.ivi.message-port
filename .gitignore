@@ -24,9 +24,11 @@ m4/lt*.m4
 *.tar.*
 build-aux
 *dbus*gen*
+depcomp
+ltmain.sh
 daemon/messageportd
 examples/*.o
-examples/msgport-test-app
+examples/msgport-example-app
 stamp-h1
 common/*-glue.c
 common/*-glue.h
