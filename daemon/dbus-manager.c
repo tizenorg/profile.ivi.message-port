@@ -317,7 +317,7 @@ msgport_dbus_manager_validate_peer_certificate (MsgPortDbusManager *dbus_manager
 
     /* check if we have cached status */
     if (g_hash_table_contains (dbus_manager->priv->peer_certs, peer_app_id))
-        return (gboolean) g_hash_table_lookup (dbus_manager->priv->peer_certs, peer_app_id);
+        return ((gboolean)(glong)g_hash_table_lookup (dbus_manager->priv->peer_certs, peer_app_id));
 #if 0
     if ((res = pkgmgrinfo_pkginfo_compare_app_cert_info (dbus_manager->priv->app_id,
                     peer_app_id, &compare_result)) != PACKAGE_MANAGER_ERROR_NONE) {

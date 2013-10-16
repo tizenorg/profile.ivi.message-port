@@ -70,4 +70,6 @@ msgport_daemon_error_to_error (const GError *error)
         case MSGPORT_ERROR_IO_ERROR:
             return MESSAGEPORT_ERROR_IO_ERROR;
     }
+
+    return MESSAGEPORT_ERROR_IO_ERROR;
 }
