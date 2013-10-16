@@ -130,9 +130,10 @@ msgport_service_send_message (MsgPortService *service, guint remote_service_id, 
     msgport_dbus_glue_service_call_send_message_sync (service->proxy, remote_service_id, message, NULL, &error);
 
     if (error) {
+        messageport_error_e err = msgport_daemon_error_to_error (error);
         WARN ("Fail to send message on service %p to %d : %s", service, remote_service_id, error->message);
         g_error_free (error);
-        return MESSAGEPORT_ERROR_IO_ERROR;
+        return err;
     }
 
     return MESSAGEPORT_ERROR_NONE;

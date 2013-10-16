@@ -1,5 +1,6 @@
 #include "msgport-manager.h"
 #include "msgport-service.h"
+#include "msgport-utils.h" /* msgport_daemon_error_to_error */
 #include "message-port.h" /* messageport_error_e */
 #include "common/dbus-manager-glue.h"
 #include "common/log.h"
@@ -113,15 +114,16 @@ MsgPortManager * msgport_get_manager ()
     return __manager;
 }
 
-static int
-_create_and_cache_service (MsgPortManager *manager, gchar *object_path, messageport_message_cb cb)
+static messageport_error_e
+_create_and_cache_service (MsgPortManager *manager, gchar *object_path, messageport_message_cb cb, int *service_id)
 {
     int id;
     MsgPortService *service = msgport_service_new (
             g_dbus_proxy_get_connection (G_DBUS_PROXY(manager->proxy)),
             object_path, cb);
     if (!service) {
-        return MESSAGEPORT_ERROR_IO_ERROR;
+        g_free (object_path);
+        return MESSAGEPORT_ERROR_OUT_OF_MEMORY;
     }
 
     id = msgport_service_id (service);
@@ -129,7 +131,9 @@ _create_and_cache_service (MsgPortManager *manager, gchar *object_path, messagep
     g_hash_table_insert (manager->services, object_path, service);
     g_hash_table_insert (manager->local_services, GINT_TO_POINTER (id), object_path);
 
-    return id;
+    if (service_id) *service_id = id;
+
+    return MESSAGEPORT_ERROR_NONE;
 }
 
 messageport_error_e
@@ -146,15 +150,13 @@ msgport_manager_register_service (MsgPortManager *manager, const gchar *port_nam
             port_name, is_trusted, &object_path, NULL, &error);
 
     if (error) {
+        messageport_error_e err = msgport_daemon_error_to_error (error);
         WARN ("unable to register service (%s): %s", port_name, error->message);
-        messageport_error_e res = msgport_daemon_error_to_error(error);
         g_error_free (error);
-        return res; 
+        return err; 
     }
 
-    *service_id = _create_and_cache_service (manager, object_path, message_cb);
-
-    return MESSAGEPORT_ERROR_NONE;
+    return _create_and_cache_service (manager, object_path, message_cb, service_id);
 }
 
 static MsgPortService *
@@ -218,14 +220,14 @@ msgport_manager_check_remote_service (MsgPortManager *manager, const gchar *app_
             app_id, port, is_trusted, &remote_service_id, NULL, &error);
 
     if (error) {
+        messageport_error_e err = msgport_daemon_error_to_error (error);
         WARN ("No %sservice found for app_id %s, port name %s: %s", 
                 is_trusted ? "trusted " : "", app_id, port, error->message);
         g_error_free (error);
-        return MESSAGEPORT_ERROR_MESSAGEPORT_NOT_FOUND;
+        return err;
     }
     else {
         DBG ("Got service id %d for %s, %s", remote_service_id, app_id, port);
-
         if (service_id_out)  *service_id_out = remote_service_id;
     }
 
@@ -253,25 +255,26 @@ messageport_error_e
 msgport_manager_send_message (MsgPortManager *manager, const gchar *remote_app_id, const gchar *remote_port, gboolean is_trusted, GVariant *data)
 {
     guint service_id = 0;
-    messageport_error_e res = MESSAGEPORT_ERROR_NONE;
     GError *error = NULL;
+    messageport_error_e err;
 
     g_return_val_if_fail (manager && MSGPORT_IS_MANAGER (manager), MESSAGEPORT_ERROR_IO_ERROR);
     g_return_val_if_fail (manager->proxy, MESSAGEPORT_ERROR_IO_ERROR);
     g_return_val_if_fail (remote_app_id && remote_port, MESSAGEPORT_ERROR_INVALID_PARAMETER);
 
-    res = msgport_manager_check_remote_service (manager, remote_app_id, remote_port, is_trusted, &service_id);
-    if (service_id == 0) return res;
+    err = msgport_manager_check_remote_service (manager, remote_app_id, remote_port, is_trusted, &service_id);
+    if (service_id == 0) return err;
 
     msgport_dbus_glue_manager_call_send_message_sync (manager->proxy, service_id, data, NULL, &error);
 
     if (error) {
+        err = msgport_daemon_error_to_error (error);
         WARN ("Failed to send message to (%s:%s) : %s", remote_app_id, remote_port, error->message);
         g_error_free (error);
-        res = MESSAGEPORT_ERROR_IO_ERROR;
+        return err;
     }
 
-    return res;
+    return MESSAGEPORT_ERROR_NONE;
 }
 
 messageport_error_e
@@ -290,7 +293,8 @@ msgport_manager_send_bidirectional_message (MsgPortManager *manager, int local_p
         WARN ("No local service found for service id '%d'", local_port_id);
         return MESSAGEPORT_ERROR_MESSAGEPORT_NOT_FOUND;
     }
-    if ( (res = msgport_manager_check_remote_service (manager, remote_app_id, remote_port, is_trusted, &remote_service_id) != MESSAGEPORT_ERROR_NONE)) {
+
+    if ((res = msgport_manager_check_remote_service (manager, remote_app_id, remote_port, is_trusted, &remote_service_id) != MESSAGEPORT_ERROR_NONE)) {
         WARN ("No remote %sport informatuon for %s:%s, error : %d", is_trusted ? "trusted " : "", remote_app_id, remote_port, res);
         return MESSAGEPORT_ERROR_MESSAGEPORT_NOT_FOUND;
     }
