@@ -27,4 +27,7 @@ libmessage_port_la_LIBADD = \
     ../common/libmessageport-common.la \
     $(GLIB_LIBS) $(GIO_LIBS) $(BUNDLE_LIBS)
 
+pkgconfigdir = $(libdir)/pkgconfig
+pkgconfig_DATA = message-port.pc
 
+CLEANFILES =

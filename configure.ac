@@ -64,5 +64,6 @@ Makefile
 common/Makefile
 daemon/Makefile
 lib/Makefile
+lib/message-port.pc
 examples/Makefile
 ])
