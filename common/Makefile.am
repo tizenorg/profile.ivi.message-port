@@ -39,7 +39,6 @@ libmessageport_dbus_glue_la_LIBADD = \
 # libmessageport-common.la
 #
 libmessageport_common_la_SOURCES = \
-    -I$(top_builddir) \
     dbus-error.h \
     dbus-error.c \
     $(NULL)
