@@ -51,6 +51,11 @@ if test "x$enable_debug" = "xyes" ; then
     AC_DEFINE(ENABLE_DEBUG, [1], [Enable debug features])
 fi
 
+# build example
+AC_ARG_ENABLE(examples,
+              [--enable-examples example applications],
+              [enable_examples=$enable_examples], [enable_examples=no])
+AM_CONDITIONAL(BUILD_EXAMPLES, [test "x$enable_examples" = "xyes"])
 
 # Checks for header files.
 AC_CHECK_HEADERS([string.h])
@@ -65,5 +70,10 @@ common/Makefile
 daemon/Makefile
 lib/Makefile
 lib/message-port.pc
-examples/Makefile
 ])
+
+if test "x$enable_examples" = "xyes"; then
+    AC_OUTPUT([
+    examples/Makefile
+    ])
+fi
