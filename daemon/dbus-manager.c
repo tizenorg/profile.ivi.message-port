@@ -31,6 +31,9 @@
 #include "manager.h"
 #include "utils.h"
 
+#include <aul/aul.h>
+#include <pkgmgr-info.h>
+
 G_DEFINE_TYPE (MsgPortDbusManager, msgport_dbus_manager, G_TYPE_OBJECT)
 
 #define MSGPORT_DBUS_MANAGER_GET_PRIV(obj) \
@@ -237,13 +240,14 @@ _get_app_id_from_connection (GDBusConnection *connection)
         return NULL;
     }
 
-#if 0
-    char buffer[255];
-    if ((res = aul_app_get_appid_bypid (peer_pid, &buffer, sizeof(buffer))) != AUL_R_OK) {
+#if 1
+    char app_id[255];
+    aul_return_val res;
+    if ((res = aul_app_get_appid_bypid (peer_pid, app_id, sizeof(app_id))) != AUL_R_OK) {
         WARN ("Fail to get appid of peer pid '%d', error : %d", peer_pid, res);
         return NULL;
     }
-    else g_strdup (buffer);
+    else g_strdup (app_id);
 #else
     return g_strdup_printf ("%d", peer_pid);
 #endif
@@ -307,8 +311,8 @@ msgport_dbus_manager_get_app_id (MsgPortDbusManager *dbus_manager)
 gboolean
 msgport_dbus_manager_validate_peer_certificate (MsgPortDbusManager *dbus_manager, const gchar *peer_app_id)
 {
-    //int res ;
-    //pkgmgrinfo_cert_compare_result_type_e compare_result;
+    int res ;
+    pkgmgrinfo_cert_compare_result_type_e compare_result;
     gboolean is_valid_cert = FALSE;
 
     /* check if the source application has no certificate info */
@@ -318,13 +322,14 @@ msgport_dbus_manager_validate_peer_certificate (MsgPortDbusManager *dbus_manager
     /* check if we have cached status */
     if (g_hash_table_contains (dbus_manager->priv->peer_certs, peer_app_id))
         return ((gboolean)(glong)g_hash_table_lookup (dbus_manager->priv->peer_certs, peer_app_id));
-#if 0
+
     if ((res = pkgmgrinfo_pkginfo_compare_app_cert_info (dbus_manager->priv->app_id,
-                    peer_app_id, &compare_result)) != PACKAGE_MANAGER_ERROR_NONE) {
+                    peer_app_id, &compare_result)) != PMINFO_R_OK) {
         WARN ("Fail to compare certificates of applications('%s', '%s') : error %d", 
                 dbus_manager->priv->app_id, peer_app_id, res);
         return FALSE;
     }
+
     if (compare_result == PMINFO_CERT_COMPARE_LHS_NO_CERT) {
         dbus_manager->priv->is_null_cert = TRUE;
         return TRUE;
@@ -332,7 +337,6 @@ msgport_dbus_manager_validate_peer_certificate (MsgPortDbusManager *dbus_manager
 
     is_valid_cert = (compare_result == PMINFO_CERT_COMPARE_MATCH) ;
     g_hash_table_insert (dbus_manager->priv->peer_certs, g_strdup (peer_app_id), (gpointer)is_valid_cert);
-#endif
 
     return is_valid_cert;
 }
