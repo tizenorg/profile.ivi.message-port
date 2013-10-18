@@ -56,6 +56,9 @@ AC_ARG_ENABLE(examples,
               [--enable-examples example applications],
               [enable_examples=$enable_examples], [enable_examples=no])
 AM_CONDITIONAL(BUILD_EXAMPLES, [test "x$enable_examples" = "xyes"])
+if test "x$enable_examples" = "xyes"; then
+    AC_PROG_CXX
+fi
 
 # Checks for header files.
 AC_CHECK_HEADERS([string.h])

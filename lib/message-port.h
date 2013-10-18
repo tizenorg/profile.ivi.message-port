@@ -12,6 +12,10 @@
 #include <bundle.h>
 #include <glib.h>
 
+#ifndef __cplusplus
+typedef gboolean bool;
+#endif
+
 G_BEGIN_DECLS
 
 /**
@@ -39,7 +43,7 @@ typedef enum _messageport_error_e
  * @remarks @a data must be released with bundle_free() by you
  * @remark @a remote_app_id and @a remote_port will be set if the remote application sends a bidirectional message, otherwise they are NULL.
  */
-typedef void (*messageport_message_cb)(int id, const char* remote_app_id, const char* remote_port, gboolean trusted_message, bundle* data);
+typedef void (*messageport_message_cb)(int id, const char* remote_app_id, const char* remote_port, bool trusted_message, bundle* data);
 
 /**
  * @brief Registers the local message port. @n
@@ -85,7 +89,7 @@ messageport_register_trusted_local_port(const char* local_port, messageport_mess
  * @retval #MESSAGEPORT_ERROR_IO_ERROR Internal I/O error
  */
 EXPORT_API messageport_error_e
-messageport_check_remote_port(const char* remote_app_id, const char *remote_port, gboolean *exist);
+messageport_check_remote_port(const char* remote_app_id, const char *remote_port, bool *exist);
 
 /**
  * @brief Checks if the trusted message port of a remote application is registered.
@@ -101,7 +105,7 @@ messageport_check_remote_port(const char* remote_app_id, const char *remote_port
  * @retval #MESSAGEPORT_ERROR_IO_ERROR Internal I/O error
  */
 EXPORT_API messageport_error_e
-messageport_check_trusted_remote_port(const char* remote_app_id, const char *remote_port, gboolean *exist);
+messageport_check_trusted_remote_port(const char* remote_app_id, const char *remote_port, bool *exist);
 
 /**
  * @brief Sends a message to the message port of a remote application.
@@ -235,7 +239,7 @@ messageport_get_local_port_name(int id, char **name);
  * @retval #MESSAGEPORT_ERROR_OUT_OF_MEMORY Out of memory
  */
 EXPORT_API messageport_error_e
-messageport_check_trusted_local_port(int id, gboolean *is_trusted);
+messageport_check_trusted_local_port(int id, bool *is_trusted);
 
 G_END_DECLS
 

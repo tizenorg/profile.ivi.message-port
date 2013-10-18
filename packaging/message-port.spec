@@ -86,6 +86,7 @@ make %{?_smp_mflags}
 %defattr(-,root,root,-)
 %if %{build_examples} == 1
 %{_bindir}/msgport-example-app
+%{_bindir}/msgport-example-app-cpp
 %endif
 %{_libdir}/pkgconfig/%{name}.pc
 %{_includedir}/*.h
