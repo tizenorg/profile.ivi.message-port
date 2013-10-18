@@ -25,7 +25,7 @@ struct _MsgPortManagerClass
 GType msgport_manager_get_type (void);
 
 MsgPortManager *
-msgport_get_manager ();
+msgport_manager_new ();
 
 messageport_error_e
 msgport_manager_register_service (MsgPortManager *manager, const gchar *port_name, gboolean is_trusted, messageport_message_cb cb, int *service_id_out);
@@ -35,6 +35,9 @@ msgport_manager_check_remote_service (MsgPortManager *manager, const gchar *remo
 
 messageport_error_e
 msgport_manager_get_service_name (MsgPortManager *manager, int port_id, gchar **name_out);
+
+messageport_error_e
+msgport_manager_get_service_is_trusted (MsgPortManager *manager, int port_id, gboolean *is_trusted_out);
 
 messageport_error_e
 msgport_manager_unregister_service (MsgPortManager *manager, int service_id);

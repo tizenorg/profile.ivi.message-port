@@ -8,6 +8,8 @@ libmessage_port_la_SOURCES = \
     msgport-service.c \
     msgport-manager.h \
     msgport-manager.c \
+    msgport-factory.h \
+    msgport-factory.c \
     $(NULL)
 
 libmessage_port_la_includedir = $(includedir)/

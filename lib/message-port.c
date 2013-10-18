@@ -1,4 +1,5 @@
 #include "message-port.h"
+#include "msgport-factory.h"
 #include "msgport-manager.h"
 #include "msgport-utils.h"
 #include "common/log.h"
@@ -8,10 +9,9 @@ _messageport_register_port (const char *name, gboolean is_trusted, messageport_m
 {
     int port_id = 0; /* id of the port created */
     messageport_error_e res;
-    MsgPortManager *manager = msgport_get_manager ();
+    MsgPortManager *manager = msgport_factory_get_manager ();
 
-    g_assert (manager);
-    g_assert (MSGPORT_IS_MANAGER (manager));
+    if (!manager) return MESSAGEPORT_ERROR_IO_ERROR;
 
     res = msgport_manager_register_service (manager, name, is_trusted, cb, &port_id);
 
@@ -22,7 +22,9 @@ static messageport_error_e
 _messageport_check_remote_port (const char *app_id, const char *port, gboolean is_trusted, gboolean *exists)
 {
     messageport_error_e res;
-    MsgPortManager *manager = msgport_get_manager ();
+    MsgPortManager *manager = msgport_factory_get_manager ();
+
+    if (!manager) return MESSAGEPORT_ERROR_IO_ERROR;
 
     res = msgport_manager_check_remote_service (manager, app_id, port, is_trusted, NULL);
 
@@ -34,7 +36,9 @@ _messageport_check_remote_port (const char *app_id, const char *port, gboolean i
 static messageport_error_e
 _messageport_send_message (const char *app_id, const char *port, gboolean is_trusted, bundle *message)
 {
-    MsgPortManager *manager = msgport_get_manager ();
+    MsgPortManager *manager = msgport_factory_get_manager ();
+
+    if (!manager) return MESSAGEPORT_ERROR_IO_ERROR;
 
     GVariant *v_data = bundle_to_variant_map (message);
 
@@ -44,7 +48,9 @@ _messageport_send_message (const char *app_id, const char *port, gboolean is_tru
 messageport_error_e
 _messageport_send_bidirectional_message (int id, const gchar *remote_app_id, const gchar *remote_port, gboolean is_trusted, bundle *message)
 {
-    MsgPortManager *manager = msgport_get_manager ();
+    MsgPortManager *manager = msgport_factory_get_manager ();
+
+    if (!manager) return MESSAGEPORT_ERROR_IO_ERROR;
 
     GVariant *v_data = bundle_to_variant_map (message);
 
@@ -104,20 +110,22 @@ messageport_send_bidirectional_trusted_message (int id, const char *remote_app_i
 }
 
 messageport_error_e
-messageport_get_local_port_name(int port_id, char **name_out)
+messageport_get_local_port_name(int id, char **name_out)
 {
-    MsgPortManager *manager = msgport_get_manager ();
+    MsgPortManager *manager = msgport_factory_get_manager ();
 
-    return msgport_manager_get_service_name (manager, port_id, name_out);
+    if (!manager) return MESSAGEPORT_ERROR_IO_ERROR;
+
+    return msgport_manager_get_service_name (manager, id, name_out);
 }
 
 messageport_error_e
-messageport_check_trusted_local_port (int id, gboolean *trusted)
+messageport_check_trusted_local_port (int id, gboolean *is_trusted_out)
 {
-    (void) id;
+    MsgPortManager *manager = msgport_factory_get_manager ();
 
-    if (trusted) *trusted = FALSE;
+    if (!manager) return MESSAGEPORT_ERROR_IO_ERROR;
 
-    return MESSAGEPORT_ERROR_NONE;
+    return msgport_manager_get_service_is_trusted (manager, id, is_trusted_out);
 }
 

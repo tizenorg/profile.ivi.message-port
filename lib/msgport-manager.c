@@ -103,17 +103,6 @@ MsgPortManager * msgport_manager_new ()
     return g_object_new (MSGPORT_TYPE_MANAGER, NULL);
 }
 
-static MsgPortManager *__manager;
-
-MsgPortManager * msgport_get_manager () 
-{
-    if (!__manager) {
-        __manager = msgport_manager_new ();
-    }
-
-    return __manager;
-}
-
 static messageport_error_e
 _create_and_cache_service (MsgPortManager *manager, gchar *object_path, messageport_message_cb cb, int *service_id)
 {
@@ -246,7 +235,22 @@ msgport_manager_get_service_name (MsgPortManager *manager, int service_id, gchar
     if (!service) return MESSAGEPORT_ERROR_MESSAGEPORT_NOT_FOUND;
 
     *name_out = g_strdup (msgport_service_name (service));
-    DBG ("PORT NAME : %s", *name_out);
+
+    return MESSAGEPORT_ERROR_NONE;
+}
+
+messageport_error_e
+msgport_manager_get_service_is_trusted (MsgPortManager *manager, int service_id, gboolean *is_trusted_out)
+{
+    MsgPortService *service = NULL;
+    g_return_val_if_fail (manager && MSGPORT_IS_MANAGER (manager), MESSAGEPORT_ERROR_IO_ERROR);
+    g_return_val_if_fail (manager->proxy, MESSAGEPORT_ERROR_IO_ERROR);
+    g_return_val_if_fail (service_id && is_trusted_out, MESSAGEPORT_ERROR_INVALID_PARAMETER);
+
+    service = _get_local_port (manager, service_id);
+    if (!service) return MESSAGEPORT_ERROR_MESSAGEPORT_NOT_FOUND;
+
+    *is_trusted_out = msgport_service_is_trusted (service);
 
     return MESSAGEPORT_ERROR_NONE;
 }
