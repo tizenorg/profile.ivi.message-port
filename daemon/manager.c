@@ -171,6 +171,7 @@ msgport_manager_register_service (
         GINT_TO_POINTER (msgport_dbus_service_get_id (dbus_service)),
         (gpointer)dbus_service);
 
+    service_list = g_hash_table_lookup (manager->priv->owner_service_map, owner);
     list_was_empty = (service_list == NULL);
 
    /* append to list of services */
