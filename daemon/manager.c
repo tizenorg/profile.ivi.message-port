@@ -122,20 +122,23 @@ _manager_get_service_internal (
     gboolean            is_trusted)
 {
     GList *service_list = g_hash_table_lookup (manager->priv->owner_service_map, owner);
+    
+    DBG ("Checking for port '%s', is_tursted : %d owned by : %p('%s')",
+            port_name, is_trusted, owner, msgport_dbus_manager_get_app_id (owner));
+
     while (service_list != NULL) {
         MsgPortDbusService *dbus_service = MSGPORT_DBUS_SERVICE (service_list->data);
 
-        DBG ("Owner : %p - Port : %s, Is_trusted : %d", owner,
-            msgport_dbus_service_get_port_name (dbus_service),
-            msgport_dbus_service_get_is_trusted (dbus_service));
-
         if ( !g_strcmp0 (port_name, msgport_dbus_service_get_port_name (dbus_service)) && 
              is_trusted == msgport_dbus_service_get_is_trusted (dbus_service)) {
+            DBG ("   Found with %d", msgport_dbus_service_get_id (dbus_service));
             return dbus_service ;
         }
 
         service_list = service_list->next;
     }
+
+    DBG ("   Not Found");
 
     return NULL;
 }
@@ -164,6 +167,7 @@ msgport_manager_register_service (
     /* create  new port/service */
     dbus_service = msgport_dbus_service_new (owner, port_name, is_trusted, error);
     if (!dbus_service) {
+        ERR ("Failed to create new servcie");
         return NULL;
     }
     /* cache newly created service */
@@ -307,4 +311,3 @@ msgport_manager_unregister_services (
 
     return TRUE;
 }
-

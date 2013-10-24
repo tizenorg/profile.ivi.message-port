@@ -1,8 +1,9 @@
 #include "msgport-factory.h"
 #include "msgport-manager.h"
+#include "common/log.h"
 #include <glib.h>
 
-GHashTable *__managers ; /* GThread:MsgPortManager */
+GHashTable *__managers = NULL; /* GThread:MsgPortManager */
 G_LOCK_DEFINE(managers);
 
 static 
@@ -51,4 +52,3 @@ MsgPortManager * msgport_factory_get_manager ()
 
     return manager;
 }
-

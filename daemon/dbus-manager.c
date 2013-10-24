@@ -98,7 +98,8 @@ _dbus_manager_handle_register_service (
     MsgPortDbusService *dbus_service = NULL;
     msgport_return_val_if_fail (dbus_mgr &&  MSGPORT_IS_DBUS_MANAGER (dbus_mgr), FALSE);
 
-    DBG ("register service request from %p for port %s", dbus_mgr, port_name);
+    DBG ("register service request from %p('%s') for port '%s', is_trusted: %d",
+        dbus_mgr, dbus_mgr->priv->app_id, port_name, is_trusted);
 
     dbus_service = msgport_manager_register_service (
             dbus_mgr->priv->manager, dbus_mgr, 
@@ -132,7 +133,7 @@ _dbus_manager_handle_check_for_remote_service (
 
     msgport_return_val_if_fail (dbus_mgr && MSGPORT_IS_DBUS_MANAGER (dbus_mgr), FALSE);
 
-    DBG ("check remote service request from %p for %s %s %d", 
+    DBG ("check remote service request from %p for '%s' '%s', is_trusted: %d", 
             dbus_mgr, remote_app_id, remote_port_name, is_trusted);
 
     remote_dbus_manager = msgport_dbus_server_get_dbus_manager_by_app_id (
@@ -169,7 +170,8 @@ _dbus_manager_handle_send_message (
 
     msgport_return_val_if_fail (dbus_mgr && MSGPORT_IS_DBUS_MANAGER (dbus_mgr), FALSE);
 
-    DBG ("send_message from %p : %d ", dbus_mgr, service_id);
+    DBG ("send_message from %p('%s') to service_id %d", 
+        dbus_mgr, dbus_mgr->priv->app_id, service_id);
 
     peer_dbus_service = msgport_manager_get_service_by_id (
             dbus_mgr->priv->manager, service_id, &error);

@@ -47,10 +47,19 @@ _on_got_message (MsgPortService *service, GVariant *data, const gchar *remote_ap
 {
 #ifdef ENABLE_DEBUG
     gchar *str_data = g_variant_print (data, TRUE);
-    DBG ("Message received : %s(%"G_GSIZE_FORMAT")", str_data, g_variant_n_children (data));
+    DBG ("Message received : '%s' from '%s':'%s':%d",
+            str_data, remote_app_id, remote_port, remote_is_trusted);
     g_free (str_data);
 #endif
     bundle *b = bundle_from_variant_map (data);
+
+    /*
+     * NOTE: wrt plugin cannot handle empty strings for port_id and app_id.
+     * It is expecting NULL in this case, But we get empty stirng from Dbus.
+     * So check for this case:
+     */
+    if (remote_app_id && !remote_app_id[0]) remote_app_id = NULL;
+    if (remote_port   && !remote_port[0])   remote_port = NULL;
 
     service->client_cb (msgport_dbus_glue_service_get_id (service->proxy), remote_app_id, remote_port, remote_is_trusted, b);
 
@@ -138,4 +147,3 @@ msgport_service_send_message (MsgPortService *service, guint remote_service_id, 
 
     return MESSAGEPORT_ERROR_NONE;
 }
-

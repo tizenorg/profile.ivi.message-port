@@ -268,7 +268,7 @@ msgport_dbus_service_send_message (
         return FALSE;
     }
 
-    DBG ("Sending message to %p from '%s:%s'", dbus_service, r_app_id, r_port);
+    DBG ("Sending message to %p from ('%s':'%s':%d)", dbus_service, r_app_id, r_port, r_is_trusted);
     msgport_dbus_glue_service_emit_on_message (dbus_service->priv->dbus_skeleton, data, r_app_id, r_port, r_is_trusted);
  
     return TRUE;
