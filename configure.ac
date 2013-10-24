@@ -39,6 +39,10 @@ PKG_CHECK_MODULES([BUNDLE], [bundle])
 AC_SUBST(BUNDLE_CFLAGS)
 AC_SUBST(BUNDLE_LIBS)
 
+PKG_CHECK_MODULES([DLOG], [dlog], [AC_DEFINE([HAVE_DLOG], [1], [Use DLOG])])
+AC_SUBST(DLOG_CFLAGS)
+AC_SUBST(DLOG_LIBS)
+
 AC_DEFINE(MESSAGEPORT_BUS_ADDRESS, 
          ["unix:path=%s/.message-port", g_get_user_runtime_dir()],
          [messageport daemon server socket address])

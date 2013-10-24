@@ -7,7 +7,7 @@ Name: Message port client library
 Description: Message port client library for WRT plugin
 Version: @PACKAGE_VERSION@
 URL: @PACKAGE_URL@
-Requires: glib-2.0 >= 2.30 gio-2.0 gio-unix-2.0 bundle
-Libs: -L${libdir} 
+Requires: glib-2.0 >= 2.30 gio-2.0 gio-unix-2.0 bundle dlog
+Libs: -L${libdir} -lmessage-port
 Cflags: -I${includedir}
 

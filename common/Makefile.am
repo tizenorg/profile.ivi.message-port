@@ -27,11 +27,11 @@ libmessageport_dbus_glue_la_SOURCES = \
     
 libmessageport_dbus_glue_la_CPPFLAGS = \
     -I$(top_builddir) \
-    $(GLIB_CFLAGS) $(GIO_CFLAGS) $(GIOUNIX_CFLAGS) \
+    $(GLIB_CFLAGS) $(GIO_CFLAGS) $(GIOUNIX_CFLAGS) $(DLOG_CFLAGS) \
     $(NULL)
 
 libmessageport_dbus_glue_la_LIBADD = \
-    $(GLIB_LIBS) $(GIO_LIBS) $(GIOUNIX_LIBS) \
+    $(GLIB_LIBS) $(GIO_LIBS) $(GIOUNIX_LIBS) $(DLOG_LIBS) \
     $(NULL)
 
 

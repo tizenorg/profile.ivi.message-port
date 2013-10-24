@@ -20,14 +20,15 @@ libmessage_port_la_include_HEADERS = \
 libmessage_port_la_CPPFLAGS = \
     -I . \
     -I $(top_builddir) \
-    -I $(top_builddir)/daemon \
-    $(GLIB_CFLAGS) $(GIO_CFLAGS) $(BUNDLE_CFLAGS) \
+    -DLOG_TAG=\"MESSAGEPORT/LIB\" \
+    $(GLIB_CFLAGS) $(GIO_CFLAGS) $(BUNDLE_CFLAGS) $(DLOG_CFLAGS) \
     -Wall -error
     $(NULL)
 
 libmessage_port_la_LIBADD = \
     ../common/libmessageport-common.la \
-    $(GLIB_LIBS) $(GIO_LIBS) $(BUNDLE_LIBS)
+    $(GLIB_LIBS) $(GIO_LIBS) $(BUNDLE_LIBS) $(DLOG_LIBS) \
+    $(NULL)
 
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = message-port.pc

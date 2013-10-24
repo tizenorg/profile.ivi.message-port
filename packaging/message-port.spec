@@ -10,6 +10,7 @@ License: LGPL-2.1+
 Source: %{name}-%{version}.tar.gz
 
 BuildRequires: pkgconfig(aul)
+BuildRequires: pkgconfig(dlog)
 BuildRequires: pkgconfig(gio-2.0)
 BuildRequires: pkgconfig(gio-unix-2.0)
 BuildRequires: pkgconfig(glib-2.0) >= 2.30
