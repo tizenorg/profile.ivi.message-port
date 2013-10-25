@@ -21,8 +21,8 @@
  * 02110-1301 USA
  */
 
-#ifndef _MSGPORT_DBUS_MANAGER_H
-#define _MSGPORT_DBUS_MANAGER_H
+#ifndef __MSGPORT_DBUS_MANAGER_H
+#define __MSGPORT_DBUS_MANAGER_H
 
 #include <glib.h>
 #include <gio/gio.h>
@@ -79,5 +79,5 @@ msgport_dbus_manager_validate_peer_certificate (MsgPortDbusManager *dbus_manager
 
 G_END_DECLS
 
-#endif /* _MSGPORT_DBUS_MANAER_H */
+#endif /* __MSGPORT_DBUS_MANAER_H */
 

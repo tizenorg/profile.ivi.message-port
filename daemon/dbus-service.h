@@ -21,8 +21,8 @@
  * 02110-1301 USA
  */
 
-#ifndef _MSGPORT_DBUS_SERVICE_H
-#define _MSGPORT_DBUS_SERVICE_H
+#ifndef __MSGPORT_DBUS_SERVICE_H
+#define __MSGPORT_DBUS_SERVICE_H
 
 #include <glib.h>
 #include <gio/gio.h>
@@ -57,7 +57,10 @@ struct _MsgPortDbusServiceClass
 GType msgport_dbus_service_get_type (void);
 
 MsgPortDbusService *
-msgport_dbus_service_new (MsgPortDbusManager *owner, const gchar *name, gboolean is_trusted, GError **error_out);
+msgport_dbus_service_new (MsgPortDbusManager *owner,
+                          const gchar *name,
+                          gboolean is_trusted,
+                          GError **error_out);
 
 const gchar *
 msgport_dbus_service_get_object_path (MsgPortDbusService *dbus_service);
@@ -90,5 +93,5 @@ msgport_dbus_service_send_message (MsgPortDbusService *dbus_service,
 
 G_END_DECLS
 
-#endif /* _MSGPORT_DBUS_SERVICE_H */
+#endif /* __MSGPORT_DBUS_SERVICE_H */
 

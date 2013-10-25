@@ -21,8 +21,8 @@
  * 02110-1301 USA
  */
 
-#ifndef _MSGPORT_MANAGER_H
-#define _MSGPORT_MANAGER_H
+#ifndef __MSGPORT_MANAGER_H
+#define __MSGPORT_MANAGER_H
 
 #include <glib-object.h>
 #include <gio/gio.h>
@@ -90,5 +90,5 @@ msgport_manager_unregister_services (
 
 G_END_DECLS
 
-#endif /* _MSGPORT_MANAER_H */
+#endif /* __MSGPORT_MANAER_H */
 

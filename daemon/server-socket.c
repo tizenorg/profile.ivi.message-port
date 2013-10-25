@@ -141,7 +141,7 @@ _msgport_callback (
         case LWS_CALLBACK_ESTABLISHED:
         break;
 
-        default;
+        default:
         g_print ("%s reason %d\n", __FUNCTION_NAME__, reason);
     }
 

@@ -21,8 +21,8 @@
  * 02110-1301 USA
  */
 
-#ifndef _MSGPORT_SERVER_SOCKET_H
-#define _MSGPORT_SERVER_SOCKET_H
+#ifndef __MSGPORT_SERVER_SOCKET_H
+#define __MSGPORT_SERVER_SOCKET_H
 
 #include <glib.h>
 #include <glib-object.h>
@@ -62,5 +62,5 @@ msgport_server_socket_start ();
 
 G_END_DECLS
 
-#endif /* _MSGPORT_SERVER_SOCKET_H */
+#endif /* __MSGPORT_SERVER_SOCKET_H */
 

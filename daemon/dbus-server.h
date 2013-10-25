@@ -1,7 +1,6 @@
 /* vi: set et sw=4 ts=4 cino=t0,(0: */
 /* -*- Mode: C; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
 /*
- *
  * Copyright (C) 2013 Intel Corporation.
  *
  * Contact: Amarnath Valluri <amarnath.valluri@linux.intel.com>
@@ -22,13 +21,12 @@
  * 02110-1301 USA
  */
 
-#ifndef __MSGPORT_DBUS_SERVER_H_
-#define __MSGPORT_DBUS_SERVER_H_
+#ifndef __MSGPORT_DBUS_SERVER_H
+#define __MSGPORT_DBUS_SERVER_H
 
 #include <config.h>
 #include <glib.h>
 #include <glib-object.h>
-//#include "manager.h"
 
 G_BEGIN_DECLS
 
@@ -70,4 +68,4 @@ MsgPortManager    * msgport_dbus_server_get_manager (MsgPortDbusServer *server);
 MsgPortDbusManager *
 msgport_dbus_server_get_dbus_manager_by_app_id (MsgPortDbusServer *server, const gchar *app_id);
 
-#endif /* __MSGPORT_DBUS_SERVER_H_ */
+#endif /* __MSGPORT_DBUS_SERVER_H */
