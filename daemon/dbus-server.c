@@ -30,6 +30,7 @@
 #include "common/log.h"
 #include "dbus-server.h"
 #include "dbus-manager.h"
+#include "utils.h"
 
 
 G_DEFINE_TYPE (MsgPortDbusServer, msgport_dbus_server, G_TYPE_OBJECT)
@@ -110,8 +111,7 @@ _dispose (GObject *object)
     if (self->priv->bus_server) {
         if (g_dbus_server_is_active (self->priv->bus_server))
             g_dbus_server_stop (self->priv->bus_server);
-        g_object_unref (self->priv->bus_server);
-        self->priv->bus_server = NULL;
+        g_clear_object (&self->priv->bus_server);
     }
 
     if (self->priv->dbus_managers) {
@@ -127,11 +127,8 @@ static void
 _finalize (GObject *object)
 {
     MsgPortDbusServer *self = MSGPORT_DBUS_SERVER (object);
-    if (self->priv->address && g_str_has_prefix (self->priv->address, "unix:path=")) {
-        const gchar *path = g_strstr_len(self->priv->address, -1, "unix:path=") + 10;
-        if (path) { 
-            g_unlink (path);
-        }
+    if (self->priv->address)  {
+        g_unlink (self->priv->address);
         g_free (self->priv->address);
         self->priv->address = NULL;
     }
@@ -231,15 +228,26 @@ _on_client_request (GDBusServer *dbus_server, GDBusConnection *connection, gpoin
     return TRUE;
 }
 
-MsgPortDbusServer * msgport_dbus_server_new_with_address (const gchar *address)
+static gboolean
+_start_bus_server (MsgPortDbusServer *server)
 {
     GError *err = NULL;
     gchar *guid = 0;
+	gchar *address = NULL;
     const gchar *file_path = NULL;
-    MsgPortDbusServer *server = MSGPORT_DBUS_SERVER (
-        g_object_new (MSGPORT_TYPE_DBUS_SERVER, "address", address, NULL));
 
-    if (!server) return NULL;
+    if (!server) return FALSE;
+
+    if (g_getenv("MESSAGEPORT_BUS_ADDRESS")) {
+        address = g_strdup (g_getenv ("MESSAGEPORT_BUS_ADDRESS"));
+    }
+    else {
+#       ifdef MESSAGEPORT_BUS_ADDRESS
+           address = g_strdup_printf (MESSAGEPORT_BUS_ADDRESS);
+#       endif
+    }
+    if (!address)
+        address = g_strdup_printf ("unix:path=%s/.message-port", g_get_user_runtime_dir());
 
     if (g_str_has_prefix(address, "unix:path=")) {
         file_path = g_strstr_len (address, -1, "unix:path=") + 10;
@@ -258,7 +266,7 @@ MsgPortDbusServer * msgport_dbus_server_new_with_address (const gchar *address)
 
     guid = g_dbus_generate_guid ();
 
-    server->priv->bus_server = g_dbus_server_new_sync (server->priv->address,
+    server->priv->bus_server = g_dbus_server_new_sync (address,
             G_DBUS_SERVER_FLAGS_NONE, guid, NULL, NULL, &err);
 
     g_free (guid);
@@ -267,11 +275,13 @@ MsgPortDbusServer * msgport_dbus_server_new_with_address (const gchar *address)
         ERR ("failed to start server at address '%s':%s", server->priv->address,
                  err->message);
         g_error_free (err);
-        
-        g_object_unref (server);
-     
-        return NULL;
+ 
+        return FALSE;
     }
+
+    DBG ("Dbus Server started at '%s'", address);
+
+    server->priv->address = g_strdup (file_path);
 
     g_signal_connect (server->priv->bus_server, "new-connection", G_CALLBACK(_on_client_request), server);
 
@@ -280,29 +290,20 @@ MsgPortDbusServer * msgport_dbus_server_new_with_address (const gchar *address)
     if (file_path)
         g_chmod (file_path, S_IRUSR | S_IWUSR);
 
-    return server;
+    g_free (address);
+
+    return TRUE;
 }
 
 MsgPortDbusServer *
 msgport_dbus_server_new () {
-	MsgPortDbusServer *server = NULL;
-	gchar *address = NULL;
+    MsgPortDbusServer *server = NULL;
+    
+    server = MSGPORT_DBUS_SERVER (g_object_new (MSGPORT_TYPE_DBUS_SERVER, NULL));
 
-    if (g_getenv("MESSAGEPORT_BUS_ADDRESS")) {
-        address = g_strdup (g_getenv ("MESSAGEPORT_BUS_ADDRESS"));
-    }
-    else {
-#       ifdef MESSAGEPORT_BUS_ADDRESS
-           address = g_strdup_printf (MESSAGEPORT_BUS_ADDRESS);
-#       endif
-    }
-    if (!address)
-        address = g_strdup_printf ("unix:path=%s/.message-port", g_get_user_runtime_dir());
+   _start_bus_server (server);
 
-    server = msgport_dbus_server_new_with_address (address);
-    g_free (address);
-
-    return server ;
+    return server;
 }
 
 static gboolean
@@ -322,4 +323,3 @@ msgport_dbus_server_get_dbus_manager_by_app_id (MsgPortDbusServer *server, const
     return (MsgPortDbusManager *)g_hash_table_find (server->priv->dbus_managers,
             (GHRFunc)_find_dbus_manager_by_app_id, (gpointer)app_id);
 }
-
