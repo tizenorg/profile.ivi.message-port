@@ -47,9 +47,18 @@ AC_DEFINE(MESSAGEPORT_BUS_ADDRESS,
          ["unix:path=%s/.message-port", g_get_user_runtime_dir()],
          [messageport daemon server socket address])
 
+# Use Session bus for daemon activation
+AC_ARG_ENABLE(sessionbus,
+             [  --enable-sessionbus     Use Session bus for activation],
+             [enable_sessionbus=$enableval], [enable_sessionbus=no])
+AM_CONDITIONAL(USE_SESSION_BUS, [test "x$enable_sessionbus" = "xyes"])
+if test "x$enable_sessionbus" = "xyes" ; then
+    AC_DEFINE(USE_SESSION_BUS, [1], [Use session bus])
+fi
+
 # Enable Debug
 AC_ARG_ENABLE(debug, 
-              [--enable-debug Eenable debug features],
+              [  --enable-debug         Eenable debug features],
               [enable_debug=$enableval], [enable_debug=no])
 if test "x$enable_debug" = "xyes" ; then
     AC_DEFINE(ENABLE_DEBUG, [1], [Enable debug features])
@@ -57,12 +66,10 @@ fi
 
 # build example
 AC_ARG_ENABLE(examples,
-              [--enable-examples example applications],
+              [  --enable-examples      Build example applications],
               [enable_examples=$enable_examples], [enable_examples=no])
 AM_CONDITIONAL(BUILD_EXAMPLES, [test "x$enable_examples" = "xyes"])
-if test "x$enable_examples" = "xyes"; then
-    AC_PROG_CXX
-fi
+AC_PROG_CXX
 
 # Checks for header files.
 AC_CHECK_HEADERS([string.h])
@@ -79,8 +86,15 @@ lib/Makefile
 lib/message-port.pc
 ])
 
+if test "x$enable_sessionbus" = "xyes"; then
+    AC_OUTPUT([
+    daemon/org.tizen.messageport.service
+    ])
+fi
+
 if test "x$enable_examples" = "xyes"; then
     AC_OUTPUT([
     examples/Makefile
     ])
 fi
+

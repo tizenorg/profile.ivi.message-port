@@ -1,6 +1,6 @@
 
 %define build_examples 1
-
+%define use_session_bus 1
 Name: message-port
 Summary: Message port daemon
 Version: 0.0.1
@@ -62,11 +62,14 @@ autoreconf -f -i
 
 
 %build
+%configure --enable-debug \
 %if %{build_examples} == 1
-%configure --enable-debug --enable-examples
-%else
-%configure --enable-debug
+     --enable-examples \
 %endif
+%if %{use_session_bus} == 1
+    --enable-sessionbus \
+%endif
+
 make %{?_smp_mflags}
 
 
@@ -85,6 +88,9 @@ make %{?_smp_mflags}
 %files -n %{name}
 %defattr(-,root,root,-)
 %{_bindir}/messageportd
+%if %{use_session_bus} == 1
+%{_datadir}/dbus-1/services/org.tizen.messageport.service
+%endif
 
 
 # libmessage-port

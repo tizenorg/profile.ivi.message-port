@@ -20,14 +20,17 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  * 02110-1301 USA
  */
+#include "config.h" /* MESSAGEPORT_BUS_ADDRESS */
 
 #include "msgport-manager.h"
 #include "msgport-service.h"
 #include "msgport-utils.h" /* msgport_daemon_error_to_error */
 #include "message-port.h" /* messageport_error_e */
 #include "common/dbus-manager-glue.h"
+#ifdef  USE_SESSION_BUS
+#include "common/dbus-server-glue.h"
+#endif
 #include "common/log.h"
-#include "config.h" /* MESSAGEPORT_BUS_ADDRESS */
 #include <gio/gio.h>
 
 struct _MsgPortManager
@@ -99,11 +102,44 @@ msgport_manager_init (MsgPortManager *manager)
 {
     GError          *error = NULL;
     GDBusConnection *connection = NULL;
-    gchar           *bus_address = g_strdup_printf (MESSAGEPORT_BUS_ADDRESS);
+    gchar           *bus_address = NULL;
 
     manager->services = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, g_object_unref);
     manager->local_services = g_hash_table_new_full (g_direct_hash, g_direct_equal, NULL, NULL);
     manager->remote_services = g_hash_table_new_full (g_direct_hash, g_direct_equal, NULL, NULL);
+
+#ifdef USE_SESSION_BUS
+    MsgPortDbusGlueServer *server = NULL;
+    server = msgport_dbus_glue_server_proxy_new_for_bus_sync (G_BUS_TYPE_SESSION,
+            G_DBUS_CONNECTION_FLAGS_AUTHENTICATION_CLIENT,
+            "org.tizen.messageport", "/", NULL, &error);
+
+    if (error) {
+        WARN ("fail to get server proxy : %s",  error->message);
+        g_error_free (error);
+    }
+    else {
+        msgport_dbus_glue_server_call_get_bus_address_sync (server, &bus_address, NULL, &error);
+        if (error) {
+            WARN ("Fail to get server bus address : %s", error->message);
+            g_error_free (error);
+        }
+    }
+
+    g_object_unref (server);
+#endif
+    if (!bus_address) {
+        if (g_getenv("MESSAGEPORT_BUS_ADDRESS")) {
+            bus_address = g_strdup (g_getenv ("MESSAGEPORT_BUS_ADDRESS"));
+        }
+        else {
+#       ifdef MESSAGEPORT_BUS_ADDRESS
+            bus_address = g_strdup_printf (MESSAGEPORT_BUS_ADDRESS);
+#       endif
+        }
+    }
+    if (!bus_address)
+        bus_address = g_strdup_printf ("unix:path=%s/.message-port", g_get_user_runtime_dir());
 
     connection = g_dbus_connection_new_for_address_sync (bus_address,
             G_DBUS_CONNECTION_FLAGS_AUTHENTICATION_CLIENT, NULL, NULL, &error);
@@ -119,6 +155,8 @@ msgport_manager_init (MsgPortManager *manager)
             g_error_free (error);
         }
     }
+
+    g_free (bus_address);
 }
 
 MsgPortManager * msgport_manager_new ()

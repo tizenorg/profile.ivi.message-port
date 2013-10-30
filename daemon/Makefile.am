@@ -1,6 +1,11 @@
 bin_PROGRAMS = messageportd
 NULL = 
 
+if USE_SESSION_BUS
+servicedir = $(datadir)/dbus-1/services
+service_DATA = org.tizen.messageport.service
+endif
+
 messageportd_SOURCES = \
     dbus-service.h \
     dbus-service.c \

@@ -1,6 +1,15 @@
 noinst_LTLIBRARIES = libmessageport-dbus-glue.la  libmessageport-common.la
 NULL = 
 
+if USE_SESSION_BUS
+dbus-server-glue.c dbus-server-glue.h : org.tizen.messageport.Server.xml
+	$(AM_V_GEM)gdbus-codegen                                \
+        --interface-prefix org.tizen.messageport \
+        --c-namespace      MsgPort_Dbus_Glue     \
+        --generate-c-code  dbus-server-glue     \
+        $<
+endif
+
 dbus-manager-glue.c dbus-maanager-glue.h : org.tizen.messageport.Manager.xml
 	$(AM_V_GEM)gdbus-codegen                                \
         --interface-prefix org.tizen.messageport \
@@ -24,6 +33,13 @@ libmessageport_dbus_glue_la_SOURCES = \
     dubs-service-glue.h \
     dbus-service-glue.c \
     $(NULL)
+
+if USE_SESSION_BUS
+libmessageport_dbus_glue_la_SOURCES += \
+    dbus-server-glue.h \
+    dbus-server-glue.c \
+    $(NULL)
+endif
     
 libmessageport_dbus_glue_la_CPPFLAGS = \
     -I$(top_builddir) \

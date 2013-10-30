@@ -59,13 +59,13 @@ msgport_error_quark ();
     msgport_error_new (MSGPORT_ERROR_NOT_FOUND, "port not found with name '%s' on application '%s'", port_name, app_id)
 
 #define msgport_error_port_id_not_found_new(service_id) \
-    msgport_error_new (MSGPORT_ERROR_NOT_FOUND, "no port found with id '%d'", service_id);
+    msgport_error_new (MSGPORT_ERROR_NOT_FOUND, "no port found with id '%d'", service_id)
 
 #define msgport_error_certificate_mismatch_new() \
-    msgport_error_new (MSGPORT_ERROR_CERTIFICATE_MISMATCH, "cerficates not matched");
+    msgport_error_new (MSGPORT_ERROR_CERTIFICATE_MISMATCH, "cerficates not matched")
 
 #define msgport_error_unknown_new() \
-    msgport_error_new (MSGPORT_ERROR_UNKNOWN, "unknown");
+    msgport_error_new (MSGPORT_ERROR_UNKNOWN, "unknown")
 
 G_END_DECLS
 
