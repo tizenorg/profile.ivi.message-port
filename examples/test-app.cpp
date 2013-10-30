@@ -66,6 +66,18 @@ public:
         return true;
     }
 
+    const std::string& name () {
+        return m_name;
+    }
+
+    bool isTrusted () {
+        return m_trusted;
+    }
+
+    int id () {
+        return m_port_id;
+    }
+
 private:
     std::string m_name;
     bool        m_trusted;
@@ -78,7 +90,10 @@ int main (int argc, const char *argv[])
 
     LocalPort port1 ("test_port1", false);
 
-    port1.Register ();
+    if (port1.Register () != true) {
+        cerr << "Failed to register local message port";
+    }
+    else cout << "Registered local message port : " << port1.name() << ", Id: "<< port1.id();
 
     g_main_loop_run (m_loop);
 

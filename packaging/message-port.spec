@@ -42,6 +42,18 @@ Requires:   lib%{name} = %{version}-%{release}
 %description -n lib%{name}-devel
 Development files for message-port client library.
 
+%if %{build_examples} == 1
+
+%package -n %{name}-examples
+Summary: Sample code examples for messageport
+Group: Development/Libraries
+Requires: lib%{name} = %{version}-%{release}
+
+%description -n %{name}-examples
+Example applications using message port.
+
+%endif
+
 
 %prep
 %setup -q -n %{name}-%{version}
@@ -85,10 +97,11 @@ make %{?_smp_mflags}
 #libmessage-port-devel
 %files -n lib%{name}-devel
 %defattr(-,root,root,-)
-%if %{build_examples} == 1
-%{_bindir}/msgport-example-app
-%{_bindir}/msgport-example-app-cpp
-%endif
 %{_libdir}/pkgconfig/%{name}.pc
 %{_includedir}/*.h
 
+%if %{build_examples} == 1
+%files -n %{name}-examples
+%{_bindir}/msgport-example-app
+%{_bindir}/msgport-example-app-cpp
+%endif
