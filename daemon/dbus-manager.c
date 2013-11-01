@@ -228,7 +228,6 @@ _get_app_id_from_connection (GDBusConnection *connection)
     GCredentials *cred = g_dbus_connection_get_peer_credentials (connection);
 
     msgport_return_val_if_fail (cred != NULL, NULL);
-
 #ifdef ENABLE_DEBUG
     gchar *str_cred = g_credentials_to_string (cred);
     DBG ("Client Credentials : %s", str_cred);
@@ -242,17 +241,17 @@ _get_app_id_from_connection (GDBusConnection *connection)
         return NULL;
     }
 
-#if 1
     char app_id[255];
     aul_return_val res;
-    if ((res = aul_app_get_appid_bypid (peer_pid, app_id, sizeof(app_id))) != AUL_R_OK) {
-        WARN ("Fail to get appid of peer pid '%d', error : %d", peer_pid, res);
-        return NULL;
+    if ((res = aul_app_get_appid_bypid (peer_pid, app_id, sizeof(app_id))) == AUL_R_OK) {
+        return g_strdup (app_id);
     }
-    else g_strdup (app_id);
-#else
-    return g_strdup_printf ("%d", peer_pid);
-#endif
+    else {
+        WARN ("Fail to get appid of peer pid '%d', error : %d, considering pid as app_id", peer_pid, res);
+        return g_strdup_printf ("%d", peer_pid);
+    }
+
+    return NULL;
 }
 
 MsgPortDbusManager *
