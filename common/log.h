@@ -31,11 +31,10 @@
 
 #   include <dlog.h>
 
-#   define __LOG(prio, frmt, args...) print_log(prio, LOG_TAG, "%s +%d:"frmt, __FILE__, __LINE__, ##args)
 
-#   define DBG(frmt, args...)  __LOG(DLOG_DEBUG, frmt, ##args)
-#   define WARN(frmt, args...) __LOG(DLOG_WARN, frmt, ##args)
-#   define ERR(frmt, args...)  __LOG(DLOG_ERROR, frmt, ##args)
+#   define DBG(frmt, args...)  LOGD(frmt, ##args)
+#   define WARN(frmt, args...) LOGW(frmt, ##args)
+#   define ERR(frmt, args...)  LOGE(frmt, ##args)
 
 #else /* USE_DLOG */
 
