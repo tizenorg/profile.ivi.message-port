@@ -59,6 +59,9 @@ msgport_service_is_trusted (MsgPortService *service);
 guint
 msgport_service_id (MsgPortService *service);
 
+void
+msgport_service_set_message_handler (MsgPortService *service, messageport_message_cb handler);
+
 gboolean
 msgport_service_unregister (MsgPortService *service);
 

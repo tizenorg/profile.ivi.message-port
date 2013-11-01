@@ -186,15 +186,49 @@ _create_and_cache_service (MsgPortManager *manager, gchar *object_path, messagep
     return MESSAGEPORT_ERROR_NONE;
 }
 
+typedef struct {
+    const gchar *name;
+    gboolean is_trusted;
+} FindServiceData ;
+
+static gboolean
+_find_service (gpointer key, gpointer value, gpointer data)
+{
+    FindServiceData *service_data = (FindServiceData*)data;
+    MsgPortService *service = (MsgPortService *)value;
+
+    return g_strcmp0 (msgport_service_name (service), service_data->name) == 0
+           && msgport_service_is_trusted (service) == service_data->is_trusted;
+}
+    
+
 messageport_error_e
 msgport_manager_register_service (MsgPortManager *manager, const gchar *port_name, gboolean is_trusted, messageport_message_cb message_cb, int *service_id)
 {
     GError *error = NULL;
     gchar *object_path = NULL;
+    FindServiceData service_data;
+    MsgPortService *service = NULL;
 
     g_return_val_if_fail (manager && MSGPORT_IS_MANAGER (manager), MESSAGEPORT_ERROR_IO_ERROR);
     g_return_val_if_fail (manager->proxy, MESSAGEPORT_ERROR_IO_ERROR);
     g_return_val_if_fail (service_id && port_name && message_cb, MESSAGEPORT_ERROR_INVALID_PARAMETER);
+
+    /* first check in cached services if found any */
+    service_data.name = port_name;
+    service_data.is_trusted = is_trusted;
+    service = g_hash_table_find (manager->services, _find_service, &service_data);
+
+    if (service) {
+        int id = msgport_service_id (service);
+        DBG ("Cached local port found for name '%s:%d' with ID : %d", port_name, is_trusted, id);
+
+        /* update message handler */
+        msgport_service_set_message_handler (service, message_cb);
+        *service_id = id;
+
+        return MESSAGEPORT_ERROR_NONE;
+    }
 
     msgport_dbus_glue_manager_call_register_service_sync (manager->proxy,
             port_name, is_trusted, &object_path, NULL, &error);

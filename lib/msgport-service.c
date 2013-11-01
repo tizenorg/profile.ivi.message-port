@@ -141,6 +141,14 @@ msgport_service_is_trusted (MsgPortService *service)
     return msgport_dbus_glue_service_get_is_trusted (service->proxy);
 }
 
+void
+msgport_service_set_message_handler (MsgPortService *service, messageport_message_cb handler)
+{
+    g_return_if_fail (service && MSGPORT_IS_SERVICE (service));
+
+    service->client_cb = handler;
+}
+
 gboolean
 msgport_service_unregister (MsgPortService *service)
 {
