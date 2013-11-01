@@ -42,107 +42,125 @@ typedef gboolean bool;
 G_BEGIN_DECLS
 
 /**
- * @brief Enumerations of error code for Application.
+ * messageport_error_e
+ * @MESSAGEPORT_ERROR_NONE: No error, operation was successful
+ * @MESSAGEPORT_ERROR_IO_ERROR: Internal I/O error
+ * @MESSAGEPORT_ERROR_OUT_OF_MEMORY: Out of memory
+ * @MESSAGEPORT_ERROR_INVALID_PARAMETER: Invalid paramenter passed
+ * @MESSAGEPORT_ERROR_MESSAGEPORT_NOT_FOUND: The message port of the remote application is not found
+ * @MESSAGEPORT_ERROR_CERTIFICATE_NOT_MATCH: The remote application is not signed with the same certificate
+ * @MESSAGEPORT_ERROR_MAX_EXCEEDED: The size of message has exceeded the maximum limit
+ * 
+ * Enumerations of error code, that return by messeage port API.
+ * 
  */
 typedef enum _messageport_error_e
 {
-    MESSAGEPORT_ERROR_NONE = 0, /**< Successful */
-    MESSAGEPORT_ERROR_IO_ERROR = -1,        /**< Internal I/O error */
-    MESSAGEPORT_ERROR_OUT_OF_MEMORY = -2,       /**< Out of memory */
-    MESSAGEPORT_ERROR_INVALID_PARAMETER = -3,   /**< Invalid parameter */
-    MESSAGEPORT_ERROR_MESSAGEPORT_NOT_FOUND = -4,       /**< The message port of the remote application is not found */
-    MESSAGEPORT_ERROR_CERTIFICATE_NOT_MATCH = -5,   /**< The remote application is not signed with the same certificate */
-    MESSAGEPORT_ERROR_MAX_EXCEEDED = -6,    /**< The size of message has exceeded the maximum limit */
+    MESSAGEPORT_ERROR_NONE = 0, 
+    MESSAGEPORT_ERROR_IO_ERROR = -1,
+    MESSAGEPORT_ERROR_OUT_OF_MEMORY = -2,
+    MESSAGEPORT_ERROR_INVALID_PARAMETER = -3,
+    MESSAGEPORT_ERROR_MESSAGEPORT_NOT_FOUND = -4,
+    MESSAGEPORT_ERROR_CERTIFICATE_NOT_MATCH = -5,
+    MESSAGEPORT_ERROR_MAX_EXCEEDED = -6,
 } messageport_error_e;
 
 /**
- * @brief   Called when a message is received from the remote application.
+ * messageport_message_cb:
+ * @id: The ID of the local message port to which the message was sent.
+ * @remote_app_id: The ID of the remote application which has sent this message, or NULL
+ * @remote_port: The name of the remote message port, or NULL
+ * @trusted_message: TRUE if the remote message port is trusted port, i.e, it receives message from trusted applications.
+ * @message: The message received.
  *
- * @param [in] id The message port id returned by messageport_register_local_port() or messageport_register_trusted_local_port()
- * @param [in] remote_app_id The ID of the remote application which has sent this message
- * @param [in] remote_port The name of the remote message port
- * @param [in] trusted_message @c true if the trusted remote message port is ready to receive the response data
- * @param [in] data the data passed from the remote application
- * @remarks @a data must be released with bundle_free() by you
- * @remark @a remote_app_id and @a remote_port will be set if the remote application sends a bidirectional message, otherwise they are NULL.
+ * This is the function type of the callback used for #messageport_register_local_port or #messageport_register_trusted_local_port.
+ * This is called when a message is received from the remote application, #remote_app_id and #remtoe_port will be set
+ * if the remote application sends a bidirectional message, otherwise they are NULL.
+ *
  */
-typedef void (*messageport_message_cb)(int id, const char* remote_app_id, const char* remote_port, bool trusted_message, bundle* data);
+typedef void (*messageport_message_cb)(int id, const char* remote_app_id, const char* remote_port, bool trusted_message, bundle* message);
 
 /**
- * @brief Registers the local message port. @n
- * If the message port name is already registered, the previous message port id returns and the callback function is changed.
- *
- * @param [in] local_port the name of the local message port
- * @param [in] callback The callback function to be called when a message is received
- * @return A message port id on success, otherwise a negative error value.
- * @retval #MESSAGEPORT_ERROR_NONE Successful
- * @retval #MESSAGEPORT_ERROR_INVALID_PARAMETER Invalid parameter
- * @retval #MESSAGEPORT_ERROR_OUT_OF_MEMORY Out of memory
- * @retval #MESSAGEPORT_ERROR_IO_ERROR Internal I/O error
+ * messageport_register_local_port:
+ * @local_port: local_port the name of the local message port
+ * @callback: callback The callback function to be called when a message is received at this port
+ * 
+ * Registers the local message port with name #local_port. If the message port name is already registered,
+ * the previous message port id returned, and the callback function is updated with #callback.
+ * The #callback function is called when a message is received from a remote application.
+ * 
+ * Returns: A message port id on success, otherwise a negative error value.
+ *          #MESSAGEPORT_ERROR_INVALID_PARAMETER If either #local_port or #callback is missing or invalid.
+ *          #MESSAGEPORT_ERROR_OUT_OF_MEMORY Memory error occured
+ *          #MESSAGEPORT_ERROR_IO_ERROR Internal I/O error
  */
 EXPORT_API int
 messageport_register_local_port(const char* local_port, messageport_message_cb callback);
 
 /**
- * @brief Registers the trusted local message port. @n
- * If the message port name is already registered, the previous message port id returns and the callback function is changed. @n
+ * messageport_register_trusted_local_port:
+ * @local_port:  local_port the name of the local message port
+ * @callback: callback The callback function to be called when a message is received
+ *
+ * Registers the trusted local message port with name #local_port. If the message port name is already registered,
+ * the previous message port id returned, and the callback function is updated with #callback. 
  * This allows communications only if the applications are signed with the same certificate which is uniquely assigned to the developer.
  *
- * @param [in] local_port the name of the local message port
- * @param [in] callback The callback function to be called when a message is received
- * @return A message port id on success, otherwise a negative error value.
- * @retval #MESSAGEPORT_ERROR_NONE Successful
- * @retval #MESSAGEPORT_ERROR_INVALID_PARAMETER Invalid parameter
- * @retval #MESSAGEPORT_ERROR_OUT_OF_MEMORY Out of memory
- * @retval #MESSAGEPORT_ERROR_IO_ERROR Internal I/O error
+ * Returns: A message port id on success, otherwise a negative error value.
+ *          #MESSAGEPORT_ERROR_INVALID_PARAMETER If either #local_port or #callback is missing or invalid.
+ *          #MESSAGEPORT_ERROR_OUT_OF_MEMORY Memory error occured
+ *          #MESSAGEPORT_ERROR_IO_ERROR Internal I/O error
  */
 EXPORT_API int
 messageport_register_trusted_local_port(const char* local_port, messageport_message_cb callback);
 
 /**
- * @brief Checks if the message port of a remote application is registered.
+ * messageport_check_remote_port:
+ * @remote_app_id: The ID of the remote application
+ * @remote_port: the name of the remote message port to check for.
+ * @exist: Return location for status, or NULL.
  *
- * @param [in] remote_app_id The ID of the remote application
- * @param [in] remote_port the name of the remote message port
+ * Checks if the message port #remote_port of a remote application #remote_app_id is registered.
+ *
  * @param [out] exist @c true if the message port of the remote application exists, otherwise @c false
- * @return 0 on success, otherwise a negative error value.
- * @retval #MESSAGEPORT_ERROR_NONE Successful
- * @retval #MESSAGEPORT_ERROR_INVALID_PARAMETER Invalid parameter
- * @retval #MESSAGEPORT_ERROR_OUT_OF_MEMORY Out of memory
- * @retval #MESSAGEPORT_ERROR_IO_ERROR Internal I/O error
+ * Returns: #MESSAGEPORT_ERROR_NONE if success, otherwise oa negative error value:
+ *          #MESSAGEPORT_ERROR_INVALID_PARAMETER Either #remote_app_id or #remote_port is missing or invalid
+ *          #MESSAGEPORT_ERROR_OUT_OF_MEMORY Memory error occured
+ *          #MESSAGEPORT_ERROR_IO_ERROR Internal I/O error
  */
 EXPORT_API messageport_error_e
 messageport_check_remote_port(const char* remote_app_id, const char *remote_port, bool *exist);
 
 /**
- * @brief Checks if the trusted message port of a remote application is registered.
+ * messageport_check_trusted_remote_port:
+ * @remote_app_id: The ID of the remote application
+ * @remote_port: The name of the remote message port
  *
- * @param [in] remote_app_id The ID of the remote application
- * @param [in] remote_port the name of the remote message port
- * @param [out] exist @c true if the message port of the remote application exists, otherwise @c false
- * @return 0 on success, otherwise a negative error value.
- * @retval #MESSAGEPORT_ERROR_NONE Successful
- * @retval #MESSAGEPORT_ERROR_INVALID_PARAMETER Invalid parameter
- * @retval #MESSAGEPORT_ERROR_OUT_OF_MEMORY Out of memory
- * @retval #MESSAGEPORT_ERROR_CERTIFICATE_NOT_MATCH The remote application is not signed with the same certificate
- * @retval #MESSAGEPORT_ERROR_IO_ERROR Internal I/O error
+ * Checks if the trusted message port #remote_port of a remote application #remote_app_id is registered.
+ *
+ * Returns: #MESSAGEPORT_ERROR_NONE on success, otherwise a negative error value.
+ *          #MESSAGEPORT_ERROR_INVALID_PARAMETER Either #remote_app_id or #remote_port is missing or invalid
+ *          #MESSAGEPORT_ERROR_OUT_OF_MEMORY Memory error occured
+ *          #MESSAGEPORT_ERROR_CERTIFICATE_NOT_MATCH The remote application is not signed with the same certificate
+ *          #MESSAGEPORT_ERROR_IO_ERROR Internal I/O error
  */
 EXPORT_API messageport_error_e
 messageport_check_trusted_remote_port(const char* remote_app_id, const char *remote_port, bool *exist);
 
 /**
- * @brief Sends a message to the message port of a remote application.
+ * messageport_send_message:
+ * @remote_app_id: The ID of the remote application
+ * @remote_port: The name of the remote message port
+ * @message: Message to be passed to the remote application, the recommended message size is under 4KB
  *
- * @param [in] remote_app_id The ID of the remote application
- * @param [in] remote_port the name of the remote message port
- * @param [in] message the message to be passed to the remote application, the recommended message size is under 4KB
- * @return 0 on success, otherwise a negative error value.
- * @retval #MESSAGEPORT_ERROR_NONE Successful
- * @retval #MESSAGEPORT_ERROR_INVALID_PARAMETER Invalid parameter
- * @retval #MESSAGEPORT_ERROR_OUT_OF_MEMORY Out of memory
- * @retval #MESSAGEPORT_ERROR_MESSAGEPORT_NOT_FOUND The message port of the remote application is not found
- * @retval #MESSAGEPORT_ERROR_MAX_EXCEEDED The size of message has exceeded the maximum limit
- * @retval #MESSAGEPORT_ERROR_IO_ERROR Internal I/O error
+ * Sends a message to the message port of a remote application.
+ *
+ * Returns #MESSAGEPORT_ERROR_NONE on success, otherwise a negative error value.
+ *         #MESSAGEPORT_ERROR_INVALID_PARAMETER Invalid parameter passed
+ *         #MESSAGEPORT_ERROR_OUT_OF_MEMORY Memory error occured
+ *         #MESSAGEPORT_ERROR_MESSAGEPORT_NOT_FOUND The message port of the remote application is not found
+ *         #MESSAGEPORT_ERROR_MAX_EXCEEDED The size of message has exceeded the maximum limit
+ *         #MESSAGEPORT_ERROR_IO_ERROR Internal I/O error
  *
  * @code
  * #include <message-port.h>
@@ -160,38 +178,42 @@ EXPORT_API messageport_error_e
 messageport_send_message(const char* remote_app_id, const char* remote_port, bundle* message);
 
 /**
- * @brief Sends a trusted message to the message port of a remote application. @n
- *  This allows communications only if the applications are signed with the same certificate which is uniquely assigned to the developer.
+ * messageport_send_trusted_message:
+ * @remote_app_id: The ID of the remote application
+ * @remote_port: The name of the remote message port
+ * @message: Message to be passed to the remote application, the recommended message size is under 4KB
  *
- * @param [in] remote_app_id The ID of the remote application
- * @param [in] remote_port the name of the remote message port
- * @param [in] message the message to be passed to the remote application, the recommended message size is under 4KB
- * @return 0 on success, otherwise a negative error value.
- * @retval #MESSAGEPORT_ERROR_NONE Successful
- * @retval #MESSAGEPORT_ERROR_INVALID_PARAMETER Invalid parameter
- * @retval #MESSAGEPORT_ERROR_OUT_OF_MEMORY Out of memory
- * @retval #MESSAGEPORT_ERROR_MESSAGEPORT_NOT_FOUND The message port of the remote application is not found
- * @retval #MESSAGEPORT_ERROR_CERTIFICATE_NOT_MATCH The remote application is not signed with the same certificate
- * @retval #MESSAGEPORT_ERROR_MAX_EXCEEDED The size of message has exceeded the maximum limit
- * @retval #MESSAGEPORT_ERROR_IO_ERROR Internal I/O error
+ * Sends a trusted message to the message port of a remote application. This allows communications only 
+ * if the applications are signed with the same certificate which is uniquely assigned to the developer.
+ *
+ * Returns #MESSAGEPORT_ERROR_NONE on success, otherwise a negative error value.
+ *         #MESSAGEPORT_ERROR_INVALID_PARAMETER Invalid parameter passed
+ *         #MESSAGEPORT_ERROR_OUT_OF_MEMORY Memeory error occured
+ *         #MESSAGEPORT_ERROR_MESSAGEPORT_NOT_FOUND The message port of the remote application is not found
+ *         #MESSAGEPORT_ERROR_CERTIFICATE_NOT_MATCH The remote application is not signed with the same certificate
+ *         #MESSAGEPORT_ERROR_MAX_EXCEEDED The size of message has exceeded the maximum limit
+ *         #MESSAGEPORT_ERROR_IO_ERROR Internal I/O error
  */
 EXPORT_API messageport_error_e
 messageport_send_trusted_message(const char* remote_app_id, const char* remote_port, bundle* message);
 
 /**
- * @brief Sends a message to the message port of a remote application. This method is used for the bidirectional communication.
+ * messageport_send_bidirectional_message:
+ * @id: The message port id returned by messageport_register_local_port() or messageport_register_trusted_local_port()
+ * @remote_app_id: The ID of the remote application
+ * @remote_port: The name of the remote message port
+ * @message: Message to be passed to the remote application, the recommended message size is under 4KB
+
+ * Sends a message to the message port #remote_port of a remote application #remote_app_id.
+ * This method is used for the bidirectional communication.
+ * Remote application can send back the return message to the local message port referred by #id.
  *
- * @param [in] id The message port id returned by messageport_register_local_port() or messageport_register_trusted_local_port()
- * @param [in] remote_app_id The ID of the remote application
- * @param [in] remote_port the name of the remote message port
- * @param [in] message the message to be passed to the remote application, the recommended message size is under 4KB
- * @return 0 on success, otherwise a negative error value.
- * @retval #MESSAGEPORT_ERROR_NONE Successful
- * @retval #MESSAGEPORT_ERROR_INVALID_PARAMETER Invalid parameter
- * @retval #MESSAGEPORT_ERROR_OUT_OF_MEMORY Out of memory
- * @retval #MESSAGEPORT_ERROR_MESSAGEPORT_NOT_FOUND The message port of the remote application is not found
- * @retval #MESSAGEPORT_ERROR_MAX_EXCEEDED The size of message has exceeded the maximum limit
- * @retval #MESSAGEPORT_ERROR_IO_ERROR Internal I/O error
+ * Returns: #MESSAGEPORT_ERROR_NONE on success, otherwise a negative error value.
+ *          #MESSAGEPORT_ERROR_INVALID_PARAMETER Invalid parameter passed
+ *          #MESSAGEPORT_ERROR_OUT_OF_MEMORY Memeory error occured
+ *          #MESSAGEPORT_ERROR_MESSAGEPORT_NOT_FOUND The message port of the remote application is not found
+ *          #MESSAGEPORT_ERROR_MAX_EXCEEDED The size of message has exceeded the maximum limit
+ *          #MESSAGEPORT_ERROR_IO_ERROR Internal I/O error
  *
  * @code
  * #include <message-port.h>
@@ -215,51 +237,56 @@ messageport_send_trusted_message(const char* remote_app_id, const char* remote_p
  * }
  */
 EXPORT_API messageport_error_e
-messageport_send_bidirectional_message(int id, const char* remote_app_id, const char* remote_port, bundle* data);
+messageport_send_bidirectional_message(int id, const char* remote_app_id, const char* remote_port, bundle* message);
 
 /**
- * @brief Sends a trusted message to the message port of a remote application. This method is used for the bidirectional communication.
- *  This allows communications only if the applications are signed with the same certificate which is uniquely assigned to the developer.
+ * messageport_send_bidirectional_trusted_message:
+ * @id: The message port id returned by messageport_register_local_port() or messageport_register_trusted_local_port()
+ * @remtoe_app_id: The ID of the remote application
+ * @remtoe_port: The  name of the remote message port
+ * @message: Message to be passed to the remote application, the recommended message size is under 4KB
  *
- * @param [in] id The message port id returned by messageport_register_local_port() or messageport_register_trusted_local_port()
- * @param [in] remote_app_id The ID of the remote application
- * @param [in] remote_port the name of the remote message port
- * @param [in] message the message to be passed to the remote application, the recommended message size is under 4KB
- * @return 0 on success, otherwise a negative error value.
- * @retval #MESSAGEPORT_ERROR_NONE Successful
- * @retval #MESSAGEPORT_ERROR_INVALID_PARAMETER Invalid parameter
- * @retval #MESSAGEPORT_ERROR_OUT_OF_MEMORY Out of memory
- * @retval #MESSAGEPORT_ERROR_MESSAGEPORT_NOT_FOUND The message port of the remote application is not found
- * @retval #MESSAGEPORT_ERROR_CERTIFICATE_NOT_MATCH The remote application is not signed with the same certificate
- * @retval #MESSAGEPORT_ERROR_MAX_EXCEEDED The size of message has exceeded the maximum limit
- * @retval #MESSAGEPORT_ERROR_IO_ERROR Internal I/O error
+ * Sends a trusted message to the message port of a remote application. This method is used for the bidirectional communication.
+ * Remote application can send back the return message to the local message port referred by #id.
+ * This allows communications only if the applications are signed with the same certificate which is uniquely assigned to the developer.
+ *
+ * Returns: #MESSAGEPORT_ERROR_NONE on success, otherwise a negative error value.
+ *          #MESSAGEPORT_ERROR_INVALID_PARAMETER Invalid parameter passed
+ *          #MESSAGEPORT_ERROR_OUT_OF_MEMORY Memeory error occured
+ *          #MESSAGEPORT_ERROR_MESSAGEPORT_NOT_FOUND The message port of the remote application is not found
+ *          #MESSAGEPORT_ERROR_CERTIFICATE_NOT_MATCH The remote application is not signed with the same certificate
+ *          #MESSAGEPORT_ERROR_MAX_EXCEEDED The size of message has exceeded the maximum limit
+ *          #MESSAGEPORT_ERROR_IO_ERROR Internal I/O error
  */
 EXPORT_API messageport_error_e
-messageport_send_bidirectional_trusted_message(int id, const char* remote_app_id, const char* remote_port, bundle* data);
+messageport_send_bidirectional_trusted_message(int id, const char* remote_app_id, const char* remote_port, bundle* message);
 
 /**
- * @brief Gets the name of the local message port.
+ * messageport_get_local_port_name:
+ * @id: The message port id returned by messageport_register_local_port() or messageport_register_trusted_local_port()
+ * @name: Return location to hold name of the message port or NULL
  *
- * @param [in] id The message port id returned by messageport_register_local_port() or messageport_register_trusted_local_port()
- * @param [out] name The name of the local message port
- * @return 0 on success, otherwise a negative error value.
- * @retval #MESSAGEPORT_ERROR_NONE Successful
- * @retval #MESSAGEPORT_ERROR_INVALID_PARAMETER Invalid parameter
- * @retval #MESSAGEPORT_ERROR_OUT_OF_MEMORY Out of memory
- * @remarks @a name must be released with free() by you
+ * Gets the name of the local message port. On success, the #name is filled with the registered message port name, which muste be released with #free().
+ *
+ * Returns: #MESSAGEPORT_ERROR_NONE on success, otherwise a negative error value.
+ *          #MESSAGEPORT_ERROR_INVALID_PARAMETER Invalid parameter
+ *          #MESSAGEPORT_ERROR_MESSAGEPORT_NOT_FOUND No local message port found for #id
+ *          #MESSAGEPORT_ERROR_OUT_OF_MEMORY Out of memory
  */
 EXPORT_API messageport_error_e
 messageport_get_local_port_name(int id, char **name);
 
 /**
- * @brief Checks if the local message port is trusted.
+ * messageport_check_trusted_local_port:
+ * @id: The message port id returned by messageport_register_local_port() or messageport_register_trusted_local_port()
+ * @is_trusted: Return location to hold the trusted state of the local messge port
  *
- * @param [in] id The message port id returned by messageport_register_local_port() or messageport_register_trusted_local_port()
- * @param [out] is_trusted true if the local message port is trusted
- * @return 0 on success, otherwise a negative error value.
- * @retval #MESSAGEPORT_ERROR_NONE Successful
- * @retval #MESSAGEPORT_ERROR_INVALID_PARAMETER Invalid parameter
- * @retval #MESSAGEPORT_ERROR_OUT_OF_MEMORY Out of memory
+ * Checks if the local message port is trusted.
+ *
+ * Returns: #MESSAGEPORT_ERROR_NONE on success, otherwise a negative error value.
+ *          #MESSAGEPORT_ERROR_INVALID_PARAMETER Invalid parameter passed
+ *          #MESSAGEPORT_ERROR_MESSAGEPORT_NOT_FOUND No local message port found for #id
+ *          #MESSAGEPORT_ERROR_OUT_OF_MEMORY Memory error occured
  */
 EXPORT_API messageport_error_e
 messageport_check_trusted_local_port(int id, bool *is_trusted);
