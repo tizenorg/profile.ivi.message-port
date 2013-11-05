@@ -1,5 +1,5 @@
 
-%define build_examples 1
+%define build_tests 1
 %define use_session_bus 1
 Name: message-port
 Summary: Message port daemon
@@ -42,15 +42,15 @@ Requires:   lib%{name} = %{version}-%{release}
 %description -n lib%{name}-devel
 Development files for message-port client library.
 
-%if %{build_examples} == 1
+%if %{build_tests} == 1
 
-%package -n %{name}-examples
-Summary: Sample code examples for messageport
+%package -n %{name}-tests
+Summary: Unit tests for messageport
 Group: Development/Libraries
 Requires: lib%{name} = %{version}-%{release}
 
-%description -n %{name}-examples
-Example applications using message port.
+%description -n %{name}-tests
+Unit tests for messageport implementation.
 
 %endif
 
@@ -63,8 +63,8 @@ autoreconf -f -i
 
 %build
 %configure --enable-debug \
-%if %{build_examples} == 1
-     --enable-examples \
+%if %{build_tests} == 1
+     --enable-tests\
 %endif
 %if %{use_session_bus} == 1
     --enable-sessionbus \
@@ -106,8 +106,8 @@ make %{?_smp_mflags}
 %{_libdir}/pkgconfig/%{name}.pc
 %{_includedir}/*.h
 
-%if %{build_examples} == 1
-%files -n %{name}-examples
-%{_bindir}/msgport-example-app
-%{_bindir}/msgport-example-app-cpp
+%if %{build_tests} == 1
+%files -n %{name}-tests
+%{_bindir}/msgport-test-app
+%{_bindir}/msgport-test-app-cpp
 %endif

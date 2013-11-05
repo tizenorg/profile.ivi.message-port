@@ -64,11 +64,11 @@ if test "x$enable_debug" = "xyes" ; then
     AC_DEFINE(ENABLE_DEBUG, [1], [Enable debug features])
 fi
 
-# build example
-AC_ARG_ENABLE(examples,
-              [  --enable-examples      Build example applications],
-              [enable_examples=$enable_examples], [enable_examples=no])
-AM_CONDITIONAL(BUILD_EXAMPLES, [test "x$enable_examples" = "xyes"])
+# build tests
+AC_ARG_ENABLE(tests,
+              [  --enable-tests      Build unit tests],
+              [enable_tests=$enable_tests], [enable_tests=no])
+AM_CONDITIONAL(BUILD_TESTS, [test "x$enable_tests" = "xyes"])
 AC_PROG_CXX
 
 # Checks for header files.
@@ -92,9 +92,9 @@ if test "x$enable_sessionbus" = "xyes"; then
     ])
 fi
 
-if test "x$enable_examples" = "xyes"; then
+if test "x$enable_tests" = "xyes"; then
     AC_OUTPUT([
-    examples/Makefile
+    tests/Makefile
     ])
 fi
 
