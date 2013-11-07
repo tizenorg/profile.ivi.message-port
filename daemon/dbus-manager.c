@@ -223,10 +223,12 @@ msgport_dbus_manager_init (MsgPortDbusManager *self)
     self->priv = priv;
 }
 static gchar *
-_get_app_id_from_connection (GDBusConnection *connection)
+_get_app_id_from_connection (GDBusConnection *connection, gboolean *is_valid)
 {
     pid_t peer_pid;
     GError *error = NULL;
+    char app_id[255];
+    aul_return_val res;
     GCredentials *cred = g_dbus_connection_get_peer_credentials (connection);
 
     msgport_return_val_if_fail (cred != NULL, NULL);
@@ -243,16 +245,13 @@ _get_app_id_from_connection (GDBusConnection *connection)
         return NULL;
     }
 
-    char app_id[255];
-    aul_return_val res;
-    if ((res = aul_app_get_appid_bypid (peer_pid, app_id, sizeof(app_id))) == AUL_R_OK) {
-        return g_strdup (app_id);
+    if ((res = aul_app_get_appid_bypid (peer_pid, app_id, sizeof(app_id))) != AUL_R_OK) {
+    	WARN ("Fail to get appid of peer pid '%d', error : %d, considering pid as app_id", peer_pid, res);
+        if (is_valid) *is_valid = FALSE;
+    	return g_strdup_printf ("%d", peer_pid);
     }
-    WARN ("Fail to get appid of peer pid '%d', error : %d, considering pid as app_id", peer_pid, res);
-
-    return g_strdup_printf ("%d", peer_pid);
-
-    return NULL;
+    if (is_valid) *is_valid = TRUE;
+    return g_strdup (app_id);
 }
 
 MsgPortDbusManager *
@@ -262,6 +261,7 @@ msgport_dbus_manager_new (
     GError **error)
 {
     MsgPortDbusManager *dbus_mgr = NULL;
+    gboolean valid_app = FALSE;
 
     dbus_mgr = MSGPORT_DBUS_MANAGER (g_object_new (MSGPORT_TYPE_DBUS_MANAGER, NULL));
     if (!dbus_mgr) {
@@ -281,7 +281,9 @@ msgport_dbus_manager_new (
     }
     dbus_mgr->priv->connection = g_object_ref (connection);
     dbus_mgr->priv->server = server;
-    dbus_mgr->priv->app_id =  _get_app_id_from_connection (connection);
+    dbus_mgr->priv->app_id =  _get_app_id_from_connection (connection, &valid_app);
+    /* treat invalid tizen apps has null certificate */
+    if (!valid_app) dbus_mgr->priv->is_null_cert = TRUE;
 
     return dbus_mgr;
 }
