@@ -62,7 +62,7 @@ autoreconf -f -i
 
 
 %build
-%configure --enable-debug \
+%configure \
 %if %{build_tests} == 1
      --enable-tests\
 %endif

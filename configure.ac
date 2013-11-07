@@ -62,6 +62,13 @@ AC_ARG_ENABLE(debug,
               [enable_debug=$enableval], [enable_debug=no])
 if test "x$enable_debug" = "xyes" ; then
     AC_DEFINE(ENABLE_DEBUG, [1], [Enable debug features])
+    AC_DEFINE_UNQUOTED([TEST_DBUS_DAEMON_CONF_FILE],
+                       ["`pwd`/tests/test-dbus-daemon.conf"],
+                       [dbus configuration for tests])
+else
+    AC_DEFINE([TEST_DBUS_DAEMON_CONF_FILE],
+              ["/etc/dbus-1/session.conf"],
+              [dbus configuration for tests])
 fi
 
 # build tests
@@ -96,5 +103,12 @@ if test "x$enable_tests" = "xyes"; then
     AC_OUTPUT([
     tests/Makefile
     ])
+    if test "x$enable_sessionbus" = "xyes"
+       -a "x$enable_debug" == "xyes" ; then
+        AC_OUTPUT([
+        tests/test-dbus-daemon.conf
+        tests/services/org.tizen.messageport.service
+        ])
+    fi
 fi
 

@@ -23,6 +23,7 @@
  * 02110-1301 USA
  */
 
+#include "config.h"
 #include <glib.h>
 #include <unistd.h>
 #include <stdlib.h>
@@ -32,6 +33,8 @@
 #include <unistd.h>
 
 int __pipe[2]; /* pipe between two process */
+pid_t __daemon_pid; /* dbus daemon pid */
+
 const gchar *PARENT_TEST_PORT = "parent_test_port";
 const gchar *PARENT_TEST_TRUSTED_PORT = "parent_test_trusted_port";
 const gchar *CHILD_TEST_PORT = "child_test_port";
@@ -394,9 +397,73 @@ _on_term (gpointer userdata)
     return FALSE;
 }
 
+static gboolean
+test_setup ()
+{
+    GIOChannel *channel = NULL;
+    gchar *bus_address = NULL;
+    gint tmp_fd = 0;
+    gint pipe_fd[2];
+    gchar *argv[4] ;
+    gsize len = 0;
+    const gchar *dbus_monitor = NULL;
+    GError *error = NULL;
+
+    argv[0] = "dbus-daemon";
+    argv[1] = "--print-address=<<fd>>";
+    argv[2] = "--config-file="TEST_DBUS_DAEMON_CONF_FILE;
+    argv[3] = NULL;
+
+    if (pipe(pipe_fd)== -1) {
+        GSpawnFlags flags = G_SPAWN_SEARCH_PATH;
+        argv[1] = g_strdup_printf ("--print-address=1");
+        g_spawn_async_with_pipes (NULL, argv, NULL, flags, NULL, NULL, &__daemon_pid, NULL, NULL, &tmp_fd, &error);
+    } else {
+        GSpawnFlags flags = (GSpawnFlags)(G_SPAWN_SEARCH_PATH | G_SPAWN_LEAVE_DESCRIPTORS_OPEN);
+        tmp_fd = pipe_fd[0];
+        argv[1] = g_strdup_printf ("--print-address=%d", pipe_fd[1]);
+        g_spawn_async (NULL, argv, NULL, flags, NULL, NULL, &__daemon_pid, &error);
+        g_free (argv[1]);
+    }
+    test_assert (error == NULL, "Failed to span daemon : %s", error->message);
+    test_assert (__daemon_pid != 0, "Failed to get daemon pid");
+    sleep (5); /* 5 seconds */
+
+    channel = g_io_channel_unix_new (tmp_fd);
+    g_io_channel_read_line (channel, &bus_address, NULL, &len, &error);
+    test_assert (error == NULL, "Failed to daemon address : %s", error->message);
+    g_io_channel_unref (channel);
+
+    if (pipe_fd[0]) close (pipe_fd[0]);
+    if (pipe_fd[1]) close (pipe_fd[1]);
+
+    if (bus_address) bus_address[len] = '\0';
+    test_assert (bus_address != NULL && bus_address[0] != 0, "Failed to get dbus-daemon address");
+
+    setenv("DBUS_SESSION_BUS_ADDRESS", bus_address, TRUE);
+
+    g_print ("Dbus daemon start at : %s\n", bus_address);
+
+    g_free (bus_address);
+
+    return TRUE;
+}
+
+static void
+test_cleanup ()
+{
+   if (__daemon_pid) kill (__daemon_pid, SIGTERM);
+}
+
+
 int main (int argc, char *argv[])
 {
     pid_t child_pid;
+
+    if (!test_setup()) {
+        g_error ("Could not start session bus!!! \n");
+        return -1;
+    }
 
     if (pipe (__pipe)) {
         g_warning ("Failed to open pipe");
@@ -414,6 +481,8 @@ int main (int argc, char *argv[])
         /* server ports */
         TEST_CASE(test_register_local_port);
         TEST_CASE(test_register_trusted_local_port);
+        TEST_CASE(test_get_local_port_name);
+        TEST_CASE(test_check_trusted_local_port);
 
         g_unix_signal_add (SIGTERM, _on_term, m_loop);
 
@@ -425,20 +494,19 @@ int main (int argc, char *argv[])
         /* sleep sometime till server ports are ready */
         sleep (3);
 
-        TEST_CASE(test_register_trusted_local_port);
         TEST_CASE(test_check_remote_port);
         TEST_CASE(test_check_trusted_remote_port);
         TEST_CASE(test_send_message);
-        TEST_CASE(test_send_trusted_message);
         TEST_CASE(test_send_bidirectional_message);
+        TEST_CASE(test_send_trusted_message);
         TEST_CASE(test_send_bidirectional_trusted_message);
-        TEST_CASE(test_get_local_port_name);
-        TEST_CASE(test_check_trusted_local_port);
 
         /* end of tests */
         kill(getppid(), SIGTERM);
 
     }
+
+    test_cleanup();
 
     return 0;
 }
