@@ -2,7 +2,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.60])
-AC_INIT([message-port], [0.0.1], [], [], [])
+AC_INIT([message-port], [1.0.0], [http://bugs.tizen.org/jira], [], [])
 AC_CONFIG_SRCDIR([daemon/main.c])
 AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_AUX_DIR([build-aux])

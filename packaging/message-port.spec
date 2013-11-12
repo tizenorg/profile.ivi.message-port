@@ -3,7 +3,7 @@
 %define use_session_bus 1
 Name: message-port
 Summary: Message port daemon
-Version: 0.0.1
+Version: 1.0.0
 Release: 1
 Group: System/Service
 License: LGPL-2.1+
