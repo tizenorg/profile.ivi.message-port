@@ -7,7 +7,8 @@ Version: 0.0.1
 Release: 1
 Group: System/Service
 License: LGPL-2.1+
-Source: %{name}-%{version}.tar.gz
+Source0: %{name}-%{version}.tar.gz
+Source1: %{name}.manifest
 
 BuildRequires: pkgconfig(aul)
 BuildRequires: pkgconfig(dlog)
@@ -57,6 +58,7 @@ Unit tests for messageport implementation.
 
 %prep
 %setup -q -n %{name}-%{version}
+cp -a %{SOURCE1} .
 mkdir m4 > /dev/null
 autoreconf -f -i
 
@@ -90,11 +92,14 @@ make %{?_smp_mflags}
 %{_bindir}/messageportd
 %if %{use_session_bus} == 1
 %{_datadir}/dbus-1/services/org.tizen.messageport.service
+%manifest %{name}.manifest
 %endif
 
 
 # libmessage-port
 %files -n lib%{name}
+%defattr(-,root,root,-)
+%manifest %{name}.manifest
 %defattr(-,root,root,-)
 %doc AUTHORS COPYING.LIB README
 %{_libdir}/lib%{name}.so*
@@ -103,11 +108,14 @@ make %{?_smp_mflags}
 #libmessage-port-devel
 %files -n lib%{name}-devel
 %defattr(-,root,root,-)
+%manifest %{name}.manifest
 %{_libdir}/pkgconfig/%{name}.pc
 %{_includedir}/*.h
 
 %if %{build_tests} == 1
 %files -n %{name}-tests
+%defattr(-,root,root,-)
+%manifest %{name}.manifest
 %{_bindir}/msgport-test-app
 %{_bindir}/msgport-test-app-cpp
 %endif
