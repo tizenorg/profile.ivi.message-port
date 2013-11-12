@@ -5,7 +5,7 @@ Name: message-port
 Summary: Message port daemon
 Version: 0.0.1
 Release: 1
-Group: System/Daemons
+Group: System/Service
 License: LGPL-2.1+
 Source: %{name}-%{version}.tar.gz
 
@@ -24,7 +24,7 @@ Tizen MessagePort WebAPI.
 
 %package -n lib%{name}
 Summary:    Client library for message port
-Group:      System/Libraries
+Group:      Base/Libraries
 Requires(post):   /sbin/ldconfig
 Requires(postun): /sbin/ldconfig
 Requires: %{name} = %{version}-%{release} 
@@ -46,7 +46,7 @@ Development files for message-port client library.
 
 %package -n %{name}-tests
 Summary: Unit tests for messageport
-Group: Development/Libraries
+Group: Development/Testing
 Requires: lib%{name} = %{version}-%{release}
 
 %description -n %{name}-tests
