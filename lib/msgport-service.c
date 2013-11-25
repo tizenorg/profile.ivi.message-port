@@ -87,8 +87,6 @@ _on_got_message (MsgPortService *service, GVariant *data, const gchar *remote_ap
     if (remote_port   && !remote_port[0])   remote_port = NULL;
 
     service->client_cb (msgport_dbus_glue_service_get_id (service->proxy), remote_app_id, remote_port, remote_is_trusted, b);
-
-    bundle_free (b);
 }
 
 MsgPortService *
