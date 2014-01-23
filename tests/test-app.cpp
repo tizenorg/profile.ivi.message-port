@@ -478,6 +478,7 @@ _on_term (gpointer userdata)
 static bool
 test_setup ()
 {
+#ifdef USE_SESSION_BUS
     GIOChannel *channel = NULL;
     gchar *bus_address = NULL;
     gint tmp_fd = 0;
@@ -524,6 +525,7 @@ test_setup ()
     setenv("DBUS_SESSION_BUS_ADDRESS", bus_address, TRUE);
 
     g_free (bus_address);
+#endif /* USE_SESSION_BUS */
 
     return true;
 }
@@ -531,7 +533,9 @@ test_setup ()
 static void
 test_cleanup ()
 {
+#ifdef USE_SESSION_BUS
     if (__daemon_pid) kill (__daemon_pid, SIGTERM);
+#endif /* USE_SESSION_BUS */
 }
 
 int main (int argc, const char *argv[])

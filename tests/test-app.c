@@ -400,6 +400,7 @@ _on_term (gpointer userdata)
 static gboolean
 test_setup ()
 {
+#ifdef USE_SESSION_BUS
     GIOChannel *channel = NULL;
     gchar *bus_address = NULL;
     gint tmp_fd = 0;
@@ -445,6 +446,7 @@ test_setup ()
     g_print ("Dbus daemon start at : %s\n", bus_address);
 
     g_free (bus_address);
+#endif /* USE_SESSION_BUS */
 
     return TRUE;
 }
@@ -452,7 +454,9 @@ test_setup ()
 static void
 test_cleanup ()
 {
+#ifdef USE_SESSION_BUS
    if (__daemon_pid) kill (__daemon_pid, SIGTERM);
+#endif /* USE_SESSION_BUS */
 }
 
 
