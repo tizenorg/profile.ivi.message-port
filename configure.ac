@@ -44,7 +44,7 @@ AC_SUBST(DLOG_CFLAGS)
 AC_SUBST(DLOG_LIBS)
 
 AC_DEFINE(MESSAGEPORT_BUS_ADDRESS, 
-         ["unix:path=%s/.message-port", g_get_user_runtime_dir()],
+         ["unix:path=%s/.message-port", "/tmp"],
          [messageport daemon server socket address])
 
 # Use Session bus for daemon activation
@@ -91,6 +91,7 @@ common/Makefile
 daemon/Makefile
 lib/Makefile
 lib/message-port.pc
+messageportd.service
 ])
 
 if test "x$enable_sessionbus" = "xyes"; then

@@ -1,6 +1,8 @@
 
 %define build_tests 1
-%define use_session_bus 1
+%define use_session_bus 0
+%define systemddir /lib/systemd
+
 Name: message-port
 Summary: Message port daemon
 Version: 1.0.0
@@ -78,6 +80,14 @@ make %{?_smp_mflags}
 %install
 %make_install
 
+mkdir -p ${RPM_BUILD_ROOT}%{systemddir}/system
+cp messageportd.service $RPM_BUILD_ROOT%{systemddir}/system
+
+%post
+/bin/systemctl enable messageportd.service
+
+%postun
+/bin/systemctl disable messageportd.service
 
 %post -n lib%{name}
 /sbin/ldconfig
@@ -94,7 +104,7 @@ make %{?_smp_mflags}
 %{_datadir}/dbus-1/services/org.tizen.messageport.service
 %manifest %{name}.manifest
 %endif
-
+%{systemddir}/system/messageportd.service
 
 # libmessage-port
 %files -n lib%{name}
