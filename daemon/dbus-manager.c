@@ -320,8 +320,10 @@ msgport_dbus_manager_validate_peer_certificate (MsgPortDbusManager *dbus_manager
     gboolean is_valid_cert = FALSE;
 
     /* check if the source application has no certificate info */
-    if (dbus_manager->priv->is_null_cert)
+    if (dbus_manager->priv->is_null_cert) {
+        DBG("Service owner has no certifcate information, treating port as untrusted");
         return TRUE; /* allow all peers to connect */
+    }
 
     /* check if we have cached status */
     if (g_hash_table_contains (dbus_manager->priv->peer_certs, peer_app_id))
@@ -334,10 +336,14 @@ msgport_dbus_manager_validate_peer_certificate (MsgPortDbusManager *dbus_manager
         return FALSE;
     }
 
-    if (compare_result == PMINFO_CERT_COMPARE_LHS_NO_CERT) {
+    if (compare_result == PMINFO_CERT_COMPARE_LHS_NO_CERT ||
+        compare_result == PMINFO_CERT_COMPARE_BOTH_NO_CERT) {
+        DBG("Service owner has no certifcate information, treating port as untrusted");
         dbus_manager->priv->is_null_cert = TRUE;
         return TRUE;
     }
+
+    DBG("certificate comparison result : %d", compare_result);
 
     is_valid_cert = (compare_result == PMINFO_CERT_COMPARE_MATCH) ;
     g_hash_table_insert (dbus_manager->priv->peer_certs, g_strdup (peer_app_id), (gpointer)is_valid_cert);
