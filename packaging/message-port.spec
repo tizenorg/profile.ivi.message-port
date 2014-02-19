@@ -5,8 +5,8 @@
 
 Name: message-port
 Summary: Message port daemon
-Version: 1.0.1
-Release: 2
+Version: 1.0.2
+Release: 1
 Group: System/Service
 License: LGPL-2.1+
 Source0: %{name}-%{version}.tar.gz
