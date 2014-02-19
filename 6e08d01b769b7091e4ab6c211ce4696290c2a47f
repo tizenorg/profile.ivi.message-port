@@ -1,0 +1,8 @@
+Code-Review+1: Mikko Ylinen <mikko.ylinen@intel.com>
+Code-Review+2: Amarnath Valluri <amarnath.valluri@linux.intel.com>
+Verified+1: Amarnath Valluri <amarnath.valluri@linux.intel.com>
+Submitted-by: Amarnath Valluri <amarnath.valluri@linux.intel.com>
+Submitted-at: Tue, 18 Feb 2014 23:58:36 -0800
+Reviewed-on: https://review.tizen.org/gerrit/16549
+Project: profile/ivi/message-port
+Branch: refs/heads/tizen
