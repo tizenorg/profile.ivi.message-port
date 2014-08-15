@@ -1,3 +1,7 @@
+* Wed Feb 19 2014 Amarnath Valluri <amarnath.valluri@linux.intel.com> accepted/tizen/ivi/20140127.173432@89deb20
+- Release 1.0.2-2
+- Bug Fixes: TIVI-2641
+
 * Wed Nov 27 2013 Amarnath Valluri <amarnath.valluri@linux.intel.com> accepted/tizen_ivi_stable/20131119.040253@0f4bb8e
 - Release 1.0.0-2
 - Fix-Issue TIVI-2159: Double free of bundle in message handler

@@ -26,6 +26,7 @@
 #include "config.h"
 
 #include <glib.h>
+#include <glib-unix.h>
 #include "common/log.h"
 #ifdef USE_SESSION_BUS
 #include "common/dbus-error.h"

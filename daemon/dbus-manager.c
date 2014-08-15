@@ -346,7 +346,8 @@ msgport_dbus_manager_validate_peer_certificate (MsgPortDbusManager *dbus_manager
     DBG("certificate comparison result : %d", compare_result);
 
     is_valid_cert = (compare_result == PMINFO_CERT_COMPARE_MATCH) ;
-    g_hash_table_insert (dbus_manager->priv->peer_certs, g_strdup (peer_app_id), (gpointer)is_valid_cert);
+    g_hash_table_insert (dbus_manager->priv->peer_certs, g_strdup (peer_app_id),
+            GUINT_TO_POINTER(is_valid_cert));
 
     return is_valid_cert;
 }

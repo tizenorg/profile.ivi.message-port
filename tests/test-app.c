@@ -24,12 +24,13 @@
  */
 
 #include "config.h"
+#include <bundle.h>
 #include <glib.h>
-#include <unistd.h>
+#include <glib/gprintf.h>
+#include <glib-unix.h>
+#include <message-port.h>
 #include <stdlib.h>
 #include <string.h>
-#include <message-port.h>
-#include <bundle.h>
 #include <unistd.h>
 
 int __pipe[2]; /* pipe between two process */
@@ -56,10 +57,10 @@ do { \
 }while (0)
 
 
-#define test_assert(expr, msg...) \
+#define test_assert(expr, msg, args...) \
 do { \
     if ((expr) == FALSE) {\
-        g_print ("%s +%d: assert(%s):%s\n", __FUNCTION__, __LINE__, #expr, ##msg); \
+        g_print ("%s +%d: assert(%s):"msg"\n", __FUNCTION__, __LINE__, #expr, ##args); \
         return FALSE; \
     } \
 } while(0);
@@ -99,7 +100,6 @@ void (_on_parent_got_message)(int port_id, const char* remote_app_id, const char
 {
     gchar *name = NULL;
     gboolean found = FALSE;
-    bundle *b = NULL;
     messageport_get_local_port_name (port_id, &name),
     g_debug ("PARENT: GOT MESSAGE at prot %s FROM :'%s' app - '%s' port", name,
         remote_app_id ? remote_app_id : "unknwon", remote_port ? remote_port : "unknwon");
@@ -175,7 +175,7 @@ test_register_trusted_local_port()
 static gboolean
 test_check_remote_port()
 {
-    const gchar remote_app_id[128];
+    gchar remote_app_id[128];
     gboolean found = FALSE;
     messageport_error_e res;
 
@@ -191,7 +191,7 @@ test_check_remote_port()
 static gboolean
 test_check_trusted_remote_port()
 {
-    const gchar remote_app_id[128];
+    gchar remote_app_id[128];
     gboolean found = FALSE;
     messageport_error_e res;
 
@@ -207,7 +207,7 @@ static gboolean
 test_send_message()
 {
     messageport_error_e res;
-    const gchar remote_app_id[128];
+    gchar remote_app_id[128];
     bundle *b = bundle_create ();
     bundle_add (b, "Name", "Amarnath");
     bundle_add (b, "Email", "amarnath.valluri@intel.com");
@@ -229,7 +229,7 @@ static gboolean
 test_send_trusted_message()
 {
     messageport_error_e res;
-    const gchar remote_app_id[128];
+    gchar remote_app_id[128];
     bundle *b = bundle_create ();
     bundle_add (b, "Name", "Amarnath");
     bundle_add (b, "Email", "amarnath.valluri@intel.com");
@@ -263,7 +263,7 @@ test_send_bidirectional_message()
 {
     messageport_error_e res;
     int local_port_id = 0;
-    const gchar remote_app_id[128];
+    gchar remote_app_id[128];
     gchar result[32];
     gboolean child_got_message = FALSE;
     bundle *b = bundle_create ();
@@ -307,7 +307,7 @@ test_send_bidirectional_trusted_message()
 {
     messageport_error_e res;
     int local_port_id = 0;
-    const gchar remote_app_id[128];
+    gchar remote_app_id[128];
     gchar result[32];
     gboolean child_got_message = FALSE;
     bundle *b = bundle_create ();

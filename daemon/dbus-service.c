@@ -49,6 +49,11 @@ _dbus_service_finalize (GObject *self)
 {
     MsgPortDbusService *dbus_service = MSGPORT_DBUS_SERVICE (self);
 
+    if (dbus_service->priv->port_name) {
+        g_free (dbus_service->priv->port_name);
+        dbus_service->priv->port_name = NULL;
+    }
+
     G_OBJECT_CLASS (msgport_dbus_service_parent_class)->finalize (self);
 }
 
@@ -77,9 +82,9 @@ _dbus_service_handle_send_message (
 {
     MsgPortDbusService *peer_dbus_service = NULL;
     MsgPortManager *manager = NULL;
-    GError *error;
+    GError *error = NULL;
 
-    msgport_return_val_if_fail_with_error (dbus_service &&  MSGPORT_IS_DBUS_SERVICE (dbus_service), FALSE, &error);
+    msgport_return_val_if_fail (dbus_service &&  MSGPORT_IS_DBUS_SERVICE (dbus_service), FALSE);
 
     DBG ("Send Message rquest on service %p to remote service id : %d", dbus_service, remote_service_id);
     manager = msgport_dbus_manager_get_manager (dbus_service->priv->owner);
@@ -109,8 +114,7 @@ _dbus_service_handle_unregister (
     GDBusMethodInvocation *invocation,
     gpointer               userdata)
 {
-    GError *error = NULL;
-    msgport_return_val_if_fail_with_error (dbus_service && MSGPORT_IS_DBUS_SERVICE (dbus_service), FALSE, &error);
+    msgport_return_val_if_fail (dbus_service && MSGPORT_IS_DBUS_SERVICE (dbus_service), FALSE);
 
     /* FIXME unregister */
     return TRUE;

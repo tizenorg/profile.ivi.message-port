@@ -41,7 +41,9 @@ struct AsyncTestData {
     bool result;
 }; 
 static int __pipe[2];
+#ifdef USE_SESSION_BUS
 static pid_t __daemon_pid = 0;
+#endif // USE_SESSION_BUS
 
 #define TEST_PARENT_PORT "test-parent-port"
 #define TEST_PARENT_TRUSTED_PORT "test-parent-trusted-port"
@@ -385,6 +387,8 @@ _update_test_result (gpointer userdata)
     AsyncTestData *test_data = (AsyncTestData *)userdata;
     test_data->result = false;
     g_main_loop_quit (test_data->m_loop);
+
+    return FALSE;
 }
 
 static bool
