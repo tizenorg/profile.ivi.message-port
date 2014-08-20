@@ -5,7 +5,7 @@
 
 Name: message-port
 Summary: Message port daemon
-Version: 1.0.2
+Version: 1.0.3
 Release: 1
 Group: System/Service
 License: LGPL-2.1+
