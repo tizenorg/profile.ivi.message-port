@@ -44,7 +44,7 @@ _messageport_register_port (const char *name, gboolean is_trusted, messageport_m
 }
 
 static messageport_error_e
-_messageport_check_remote_port (const char *app_id, const char *port, gboolean is_trusted, gboolean *exists)
+_messageport_check_remote_port (const char *app_id, const char *port, gboolean is_trusted, bool *exists)
 {
     messageport_error_e res;
     MsgPortManager *manager = msgport_factory_get_manager ();
@@ -53,7 +53,7 @@ _messageport_check_remote_port (const char *app_id, const char *port, gboolean i
 
     res = msgport_manager_check_remote_service (manager, app_id, port, is_trusted, NULL);
 
-    if (exists) *exists = (res == MESSAGEPORT_ERROR_NONE);
+    if (exists) *exists = (bool)(res == MESSAGEPORT_ERROR_NONE);
 
     return res;
 }
@@ -99,13 +99,13 @@ messageport_register_trusted_local_port (const char *local_port, messageport_mes
 }
 
 messageport_error_e
-messageport_check_remote_port (const char *remote_app_id, const char *port_name, gboolean *exists)
+messageport_check_remote_port (const char *remote_app_id, const char *port_name, bool *exists)
 {
     return _messageport_check_remote_port (remote_app_id, port_name, FALSE, exists);
 }
 
 messageport_error_e
-messageport_check_trusted_remote_port (const char *remote_app_id, const char *port_name, gboolean *exists)
+messageport_check_trusted_remote_port (const char *remote_app_id, const char *port_name, bool *exists)
 {
     return _messageport_check_remote_port (remote_app_id, port_name, TRUE, exists);
 }
@@ -145,12 +145,16 @@ messageport_get_local_port_name(int id, char **name_out)
 }
 
 messageport_error_e
-messageport_check_trusted_local_port (int id, gboolean *is_trusted_out)
+messageport_check_trusted_local_port (int id, bool *is_trusted_out)
 {
     MsgPortManager *manager = msgport_factory_get_manager ();
 
     if (!manager) return MESSAGEPORT_ERROR_IO_ERROR;
 
-    return msgport_manager_get_service_is_trusted (manager, id, is_trusted_out);
-}
+    gboolean is_trusted = FALSE;
+    messageport_error_e res = msgport_manager_get_service_is_trusted (
+            manager, id, &is_trusted);
+    if (is_trusted_out) *is_trusted_out = (bool)is_trusted;
 
+    return res;
+}

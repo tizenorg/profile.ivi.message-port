@@ -99,7 +99,7 @@ void (_on_child_got_message)(int port_id, const char* remote_app_id, const char*
 void (_on_parent_got_message)(int port_id, const char* remote_app_id, const char* remote_port, gboolean trusted_message, bundle* data)
 {
     gchar *name = NULL;
-    gboolean found = FALSE;
+    bool found = FALSE;
     messageport_get_local_port_name (port_id, &name),
     g_debug ("PARENT: GOT MESSAGE at prot %s FROM :'%s' app - '%s' port", name,
         remote_app_id ? remote_app_id : "unknwon", remote_port ? remote_port : "unknwon");
@@ -176,7 +176,7 @@ static gboolean
 test_check_remote_port()
 {
     gchar remote_app_id[128];
-    gboolean found = FALSE;
+    bool found = FALSE;
     messageport_error_e res;
 
     g_sprintf (remote_app_id, "%d", getppid());

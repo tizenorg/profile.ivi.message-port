@@ -38,7 +38,7 @@
 #include <glib.h>
 
 #ifndef __cplusplus
-typedef gboolean bool;
+typedef guint8 bool;
 #endif
 
 G_BEGIN_DECLS
