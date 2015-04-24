@@ -4,7 +4,7 @@ Description=Messageport Daemon
 [Service]
 Type=simple
 User=app
-SmackExecLabel=User
+SmackProcessLabel=User
 KillSignal=SIGTERM
 Restart=always
 ExecStart=@prefix@/bin/messageportd
